@@ -32,7 +32,7 @@ Route::prefix('admin')->group(function () {
 
     // Admin authenticated routes (existing dashboard)
     Route::middleware('auth:web')->group(function () {
-        Route::get('/dashboard', [App\Http\Controllers\HomeController::class, 'index'])->name('admin.dashboard');
+        Route::get('/dashboard', [App\Http\Controllers\Admin\AdminDashboardController::class, 'index'])->name('admin.dashboard');
         
         Route::prefix('account')->group(function () {
             Route::post('create', [UserController::class, 'create'])->name('user.create');
@@ -85,9 +85,7 @@ Route::get('/login', function () {
     return redirect()->route('admin.login');
 })->name('login');
 
-Route::post('/logout', function () {
-    return redirect()->route('admin.logout');
-})->name('logout');
+Route::post('/logout', [\App\Http\Controllers\Auth\AdminLoginController::class, 'logout'])->name('logout');
 
 Route::get('/home', function () {
     return redirect()->route('admin.dashboard');
