@@ -1,11 +1,12 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
-class HomeController extends Controller
+class AdminDashboardController extends Controller
 {
     /**
      * Create a new controller instance.
@@ -18,7 +19,7 @@ class HomeController extends Controller
     }
 
     /**
-     * Show the application dashboard.
+     * Show the admin dashboard.
      */
     public function index(): View
     {

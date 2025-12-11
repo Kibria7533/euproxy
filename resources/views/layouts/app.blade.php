@@ -66,6 +66,7 @@
 
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <!-- Left Side Of Navbar -->
+                    @unless(request()->is('admin*'))
                     <ul class="navbar-nav me-auto">
                         @guest
                         @else
@@ -82,6 +83,7 @@
                             </li>
                         @endguest
                     </ul>
+                    @endunless
 
                     <!-- Right Side Of Navbar -->
                     <ul class="navbar-nav ms-auto">
@@ -122,9 +124,36 @@
             </div>
         </nav>
 
+        @if(request()->is('admin*'))
+        <div class="container-fluid">
+            <div class="row">
+                <nav class="col-md-2 d-none d-md-block bg-white sidebar" style="min-height: calc(100vh - 56px); border-right:1px solid #e2e8f0;">
+                    <div class="position-sticky pt-3">
+                        <ul class="nav flex-column px-2">
+                            @can('create-user')
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('user.search') }}">Users</a>
+                            </li>
+                            @endcan
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('ip.search',request()->user()->id) }}">Allow IPs</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('squiduser.search',request()->user()->id) }}">Squid User</a>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+                <main class="col-md-10 ms-sm-auto col-lg-10 px-4 py-4">
+                    @yield('content')
+                </main>
+            </div>
+        </div>
+        @else
         <main class="py-4">
             @yield('content')
         </main>
+        @endif
 
         <footer class="footer mt-5 py-4">
             <div class="container text-center">
