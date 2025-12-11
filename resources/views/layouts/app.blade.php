@@ -50,6 +50,74 @@
             background-color: white;
             border-top: 1px solid #e2e8f0;
         }
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #64748b;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .sidebar-link:hover {
+            background-color: #f1f5f9;
+            color: #2563eb;
+        }
+        .sidebar-link.active {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+        }
+        .sidebar-link svg {
+            margin-right: 12px;
+            transition: all 0.2s;
+        }
+        .sidebar-link.active svg {
+            stroke: white;
+        }
+
+        /* Mobile Responsive Improvements */
+        @media (max-width: 768px) {
+            .navbar-brand {
+                font-size: 1.25rem;
+            }
+            .stat-card {
+                margin-bottom: 1rem;
+            }
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 1rem;
+            }
+            .page-header > a {
+                width: 100%;
+            }
+            .action-btn {
+                padding: 8px 12px;
+                font-size: 0.8rem;
+            }
+            .modern-table {
+                font-size: 0.875rem;
+            }
+            .modern-table thead th,
+            .modern-table tbody td {
+                padding: 0.75rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .stat-value {
+                font-size: 1.5rem;
+            }
+            .stat-icon {
+                width: 40px;
+                height: 40px;
+            }
+            .stat-icon svg {
+                width: 20px;
+                height: 20px;
+            }
+        }
     </style>
 
 </head>
@@ -127,21 +195,54 @@
         @if(request()->is('admin*'))
         <div class="container-fluid">
             <div class="row">
-                <nav class="col-md-2 d-none d-md-block bg-white sidebar" style="min-height: calc(100vh - 56px); border-right:1px solid #e2e8f0;">
-                    <div class="position-sticky pt-3">
-                        <ul class="nav flex-column px-2">
-                            @can('create-user')
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('user.search') }}">Users</a>
-                            </li>
-                            @endcan
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('ip.search',request()->user()->id) }}">Allow IPs</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('squiduser.search',request()->user()->id) }}">Squid User</a>
-                            </li>
-                        </ul>
+                <nav class="col-md-2 d-none d-md-block bg-white sidebar" style="min-height: calc(100vh - 56px); border-right:1px solid #e2e8f0; position: sticky; top: 56px; height: calc(100vh - 56px); overflow-y: auto;">
+                    <div class="pt-4 pb-3 px-3">
+                        <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
+                            <div class="flex-shrink-0">
+                                <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.1rem;">
+                                    {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="fw-semibold" style="font-size: 0.9rem;">{{ Auth::user()->name }}</div>
+                                <div class="text-muted small">Administrator</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <a href="{{ route('admin.dashboard') }}" class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: #64748b; font-weight: 500; transition: all 0.2s;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 12px;"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                                Dashboard
+                            </a>
+                        </div>
+
+                        <div class="sidebar-section">
+                            <div class="sidebar-section-title" style="font-size: 0.75rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; padding: 0 12px; margin-bottom: 8px;">
+                                Management
+                            </div>
+                            <ul class="nav flex-column">
+                                @can('create-user')
+                                <li class="nav-item">
+                                    <a class="sidebar-link {{ request()->routeIs('user.*') ? 'active' : '' }}" href="{{ route('user.search') }}" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: #64748b; font-weight: 500; transition: all 0.2s;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 12px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                                        Users
+                                    </a>
+                                </li>
+                                @endcan
+                                <li class="nav-item">
+                                    <a class="sidebar-link {{ request()->routeIs('squiduser.*') ? 'active' : '' }}" href="{{ route('squiduser.search',request()->user()->id) }}" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: #64748b; font-weight: 500; transition: all 0.2s;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 12px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                                        Proxy Users
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="sidebar-link {{ request()->routeIs('ip.*') ? 'active' : '' }}" href="{{ route('ip.search',request()->user()->id) }}" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: #64748b; font-weight: 500; transition: all 0.2s;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 12px;"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                                        Allowed IPs
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </nav>
                 <main class="col-md-10 ms-sm-auto col-lg-10 px-4 py-4">
