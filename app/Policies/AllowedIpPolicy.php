@@ -22,7 +22,7 @@ class AllowedIpPolicy
 
     public function search(User $user, string $toSpecifiedUserId)
     {
-        if ($user->is_administrator === 1) {
+        if ((bool) $user->is_administrator) {
             return true;
         }
 
@@ -35,7 +35,7 @@ class AllowedIpPolicy
 
     public function create(User $user, string $toSpecifiedUserId): bool
     {
-        if ($user->is_administrator === 1) {
+        if ((bool) $user->is_administrator) {
             return true;
         }
 
@@ -48,7 +48,7 @@ class AllowedIpPolicy
 
     public function destroy(User $user, SquidAllowedIp $squidAllowedIp)
     {
-        if ($user->is_administrator === 1) {
+        if ((bool) $user->is_administrator) {
             return true;
         }
 

@@ -75,18 +75,17 @@ class AdminLoginController extends Controller
     {
         $this->validateLogin($request);
 
-        // Check if user is superadmin (you can modify this logic)
-        // For now, we'll check if user has admin role or is in a superadmin group
+        // Attempt to authenticate the user
         if ($this->guard()->attempt(
             $this->credentials($request),
             $request->boolean('remember')
         )) {
-            // Optional: Add additional check for superadmin status
-            // if (!auth()->user()->is_admin) {
-            //     auth()->logout();
-            //     return redirect()->route('admin.login')
-            //         ->withErrors(['email' => 'You do not have admin access.']);
-            // }
+            // Check if user is an administrator
+            if (!auth()->user()->is_administrator) {
+                auth()->logout();
+                return redirect()->route('admin.login')
+                    ->withErrors(['email' => 'You do not have admin access. Please use the regular user login.']);
+            }
 
             return $this->sendLoginResponse($request);
         }

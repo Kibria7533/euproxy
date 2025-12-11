@@ -22,7 +22,7 @@ class SquidUserPolicy
 
     public function search(User $user, string $toSpecifiedUserId)
     {
-        if ($user->is_administrator === 1) {
+        if ((bool) $user->is_administrator) {
             return true;
         }
 
@@ -35,7 +35,7 @@ class SquidUserPolicy
 
     public function create(User $user, string $toSpecifiedUserId): bool
     {
-        if ($user->is_administrator === 1) {
+        if ((bool) $user->is_administrator) {
             return true;
         }
 
@@ -48,7 +48,7 @@ class SquidUserPolicy
 
     public function modify(User $user, SquidUser $squidUser)
     {
-        if ($user->is_administrator === 1) {
+        if ((bool) $user->is_administrator) {
             return true;
         }
 
@@ -61,7 +61,7 @@ class SquidUserPolicy
 
     public function destroy(User $user, SquidUser $squidUser)
     {
-        if ($user->is_administrator === 1) {
+        if ((bool) $user->is_administrator) {
             return true;
         }
 

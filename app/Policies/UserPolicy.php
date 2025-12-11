@@ -21,12 +21,12 @@ class UserPolicy
 
     public function create(User $user): bool
     {
-        return $user->is_administrator === 1;
+        return (bool) $user->is_administrator;
     }
 
     public function modify(User $user, string $updateUserId)
     {
-        if ($user->is_administrator === 1) {
+        if ((bool) $user->is_administrator) {
             return true;
         }
 
@@ -39,11 +39,11 @@ class UserPolicy
 
     public function destroy(User $user)
     {
-        return $user->is_administrator === 1;
+        return (bool) $user->is_administrator;
     }
 
     public function search(User $user)
     {
-        return $user->is_administrator === 1;
+        return (bool) $user->is_administrator;
     }
 }

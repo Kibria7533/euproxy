@@ -1,335 +1,536 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - euproxy</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- CSRF Token -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <title>euproxy - User Dashboard</title>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+
+    <!-- Fonts -->
+    <link rel="dns-prefetch" href="//fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css" rel="stylesheet"/>
     <style>
         * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
         }
-
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f9fafb;
-            color: #1f2937;
+            background-color: #f8fafc;
         }
-
         .navbar {
-            background: white;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            border-bottom: 1px solid #e5e7eb;
+            background: white !important;
+            border-bottom: 1px solid #e2e8f0;
         }
-
         .navbar-brand {
             font-weight: 700;
-            font-size: 1.3rem;
-            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-
         .nav-link {
-            color: #6b7280 !important;
+            color: #64748b !important;
             font-weight: 500;
-            transition: color 0.3s;
+            transition: color 0.3s ease;
         }
-
         .nav-link:hover {
-            color: #7c3aed !important;
+            color: #8b5cf6 !important;
         }
-
-        .dashboard-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 30px 20px;
-        }
-
-        .header-section {
-            margin-bottom: 30px;
-        }
-
-        .header-section h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #1f2937;
-            margin-bottom: 8px;
-        }
-
-        .header-section p {
-            color: #6b7280;
-            font-size: 1.05rem;
-        }
-
-        .welcome-card {
+        .sidebar {
             background: white;
+            border-right: 1px solid #e2e8f0;
+            min-height: calc(100vh - 56px);
+            position: sticky;
+            top: 56px;
+            height: calc(100vh - 56px);
+            overflow-y: auto;
+        }
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
             border-radius: 8px;
-            padding: 30px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            border: 1px solid #e5e7eb;
-            margin-bottom: 30px;
+            text-decoration: none;
+            color: #64748b;
+            font-weight: 500;
+            transition: all 0.2s;
         }
-
-        .welcome-card h2 {
-            color: #1f2937;
-            margin-bottom: 10px;
+        .sidebar-link:hover {
+            background-color: #f1f5f9;
+            color: #8b5cf6;
         }
-
-        .welcome-card p {
-            color: #6b7280;
-            margin: 0;
+        .sidebar-link.active {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
         }
-
-        .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+        .sidebar-link svg {
+            margin-right: 12px;
+            transition: all 0.2s;
         }
-
-        .card {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 20px;
-            transition: all 0.3s;
-            cursor: pointer;
+        .sidebar-link.active svg {
+            stroke: white;
         }
-
-        .card:hover {
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            border-color: #7c3aed;
-            transform: translateY(-2px);
+        .stat-card {
+            border-radius: 12px;
+            border: none;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-
-        .card-icon {
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .stat-icon {
             width: 48px;
             height: 48px;
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(109, 40, 217, 0.1) 100%);
-            border-radius: 8px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 15px;
+            font-size: 24px;
         }
-
-        .card-icon svg {
-            width: 24px;
-            height: 24px;
-            color: #7c3aed;
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1;
         }
-
-        .card-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 8px;
-        }
-
-        .card-description {
-            color: #6b7280;
-            font-size: 0.95rem;
-            margin: 0;
-        }
-
-        .user-info {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 20px;
-        }
-
-        .user-info h3 {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: #1f2937;
-        }
-
-        .info-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid #f3f4f6;
-        }
-
-        .info-item:last-child {
-            border-bottom: none;
-        }
-
-        .info-label {
-            color: #6b7280;
+        .stat-label {
+            color: #64748b;
+            font-size: 0.875rem;
             font-weight: 500;
         }
-
-        .info-value {
-            color: #1f2937;
+        .recent-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .recent-item {
+            padding: 12px;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .recent-item:hover {
+            background-color: #f1f5f9;
+        }
+        .badge-status {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
             font-weight: 600;
         }
-
-        .btn-primary-gradient {
-            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-decoration: none;
-            display: inline-block;
+        .footer {
+            background-color: white;
+            border-top: 1px solid #e2e8f0;
         }
 
-        .btn-primary-gradient:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(124, 58, 237, 0.3);
-            color: white;
-        }
-
-        .btn-outline {
-            background: white;
-            color: #7c3aed;
-            border: 1px solid #7c3aed;
-            padding: 10px 20px;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .btn-outline:hover {
-            background: #7c3aed;
-            color: white;
-        }
-
+        /* Mobile Responsive */
         @media (max-width: 768px) {
-            .header-section h1 {
+            .navbar-brand {
+                font-size: 1.25rem;
+            }
+            .stat-card {
+                margin-bottom: 1rem;
+            }
+            .stat-value {
                 font-size: 1.5rem;
             }
-
-            .cards-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .navbar-brand {
-                font-size: 1.1rem;
+            .stat-icon {
+                width: 40px;
+                height: 40px;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-light">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="{{ route('user.dashboard') }}">euproxy</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('user.dashboard') }}">Dashboard</a>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                            {{ Auth::user()->name }}
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                            <li><a class="dropdown-item" href="#">Settings</a></li>
-                            <li><a class="dropdown-item" href="#">Profile</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item" href="#" onclick="document.getElementById('logout-form').submit(); return false;">
-                                    Logout
+    <div id="app">
+        <nav class="navbar navbar-expand-md navbar-light">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="{{ route('user.dashboard') }}">
+                    <span>eu</span>proxy
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="{{ __('Toggle navigation') }}">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <!-- Right Side Of Navbar -->
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item dropdown">
+                            <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
+                                {{ Auth::user()->name }}
+                            </a>
+
+                            <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                <a class="dropdown-item" href="{{ route('user.logout') }}"
+                                   onclick="event.preventDefault();
+                                                 document.getElementById('logout-form').submit();">
+                                    {{ __('Logout') }}
                                 </a>
-                            </li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
 
-    <!-- Logout Form -->
-    <form id="logout-form" method="POST" action="{{ route('user.logout') }}" style="display: none;">
-        @csrf
-    </form>
-
-    <!-- Main Content -->
-    <div class="dashboard-container">
-        <!-- Header -->
-        <div class="header-section">
-            <h1>Welcome, {{ explode(' ', $user->name)[0] }}! 👋</h1>
-            <p>Here's your euproxy dashboard overview</p>
-        </div>
-
-        <!-- Welcome Card -->
-        <div class="welcome-card">
-            <h2>Getting Started</h2>
-            <p>Your account is ready to use. Manage your proxy settings and monitor your usage from this dashboard.</p>
-        </div>
-
-        <!-- Feature Cards -->
-        <div class="cards-grid">
-            <div class="card">
-                <div class="card-icon">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                    </svg>
+                                <form id="logout-form" action="{{ route('user.logout') }}" method="POST" class="d-none">
+                                    @csrf
+                                </form>
+                            </div>
+                        </li>
+                    </ul>
                 </div>
-                <div class="card-title">Manage Proxy Accounts</div>
-                <p class="card-description">Create and manage your proxy accounts with ease</p>
             </div>
+        </nav>
 
-            <div class="card">
-                <div class="card-icon">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                    </svg>
-                </div>
-                <div class="card-title">Security Settings</div>
-                <p class="card-description">Control access and configure security options</p>
-            </div>
+        <div class="container-fluid">
+            <div class="row">
+                <!-- Sidebar -->
+                <nav class="col-md-2 d-none d-md-block sidebar">
+                    <div class="pt-4 pb-3 px-3">
+                        <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
+                            <div class="flex-shrink-0">
+                                <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.1rem;">
+                                    {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="fw-semibold" style="font-size: 0.9rem;">{{ Auth::user()->name }}</div>
+                                <div class="text-muted small">User</div>
+                            </div>
+                        </div>
 
-            <div class="card">
-                <div class="card-icon">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                    </svg>
-                </div>
-                <div class="card-title">Usage Analytics</div>
-                <p class="card-description">Track your proxy usage and activity logs</p>
+                        <div class="mb-3">
+                            <a href="{{ route('user.dashboard') }}" class="sidebar-link active">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                                Dashboard
+                            </a>
+                        </div>
+
+                        <div class="sidebar-section">
+                            <div class="sidebar-section-title" style="font-size: 0.75rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; padding: 0 12px; margin-bottom: 8px;">
+                                Management
+                            </div>
+                            <ul class="nav flex-column">
+                                <li class="nav-item">
+                                    <a class="sidebar-link" href="{{ route('squiduser.search', Auth::user()->id) }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                                        Proxy Users
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="sidebar-link" href="{{ route('ip.search', Auth::user()->id) }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                                        Allowed IPs
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </nav>
+
+                <!-- Main Content -->
+                <main class="col-md-10 ms-sm-auto col-lg-10 px-4 py-4">
+                    <div class="container-fluid">
+                        <!-- Welcome Section -->
+                        <div class="mb-4">
+                            <h2 class="fw-bold mb-1">Welcome back, {{ Auth::user()->name }}!</h2>
+                            <p class="text-muted">Here's your proxy management overview.</p>
+                        </div>
+
+                        <!-- Statistics Cards -->
+                        <div class="row g-4 mb-4">
+                            <!-- Total Proxy Users -->
+                            <div class="col-md-4">
+                                <div class="card stat-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <div class="stat-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white;">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                                            </div>
+                                        </div>
+                                        <div class="stat-value mb-1">{{ $stats['total_proxy_users'] }}</div>
+                                        <div class="stat-label">My Proxy Accounts</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Enabled Proxy Users -->
+                            <div class="col-md-4">
+                                <div class="card stat-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <div class="stat-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                                            </div>
+                                        </div>
+                                        <div class="stat-value mb-1">{{ $stats['enabled_proxy_users'] }}</div>
+                                        <div class="stat-label">Active Proxies</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Total Allowed IPs -->
+                            <div class="col-md-4">
+                                <div class="card stat-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white;">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                                            </div>
+                                        </div>
+                                        <div class="stat-value mb-1">{{ $stats['total_allowed_ips'] }}</div>
+                                        <div class="stat-label">Whitelisted IPs</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Charts Section -->
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-6">
+                                <div class="card stat-card">
+                                    <div class="card-body">
+                                        <h5 class="fw-bold mb-3">Proxy Status</h5>
+                                        <canvas id="proxyStatusChart" height="200"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card stat-card">
+                                    <div class="card-body">
+                                        <h5 class="fw-bold mb-3">My Resources</h5>
+                                        <canvas id="resourcesChart" height="200"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activity -->
+                        <div class="row g-4 mb-4">
+                            <!-- Recent Proxy Users -->
+                            <div class="col-md-6">
+                                <div class="card stat-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h5 class="fw-bold mb-0">Recent Proxy Users</h5>
+                                            <a href="{{ route('squiduser.search', Auth::user()->id) }}" class="btn btn-sm btn-outline-primary">View All</a>
+                                        </div>
+                                        @if($stats['recent_proxy_users']->count() > 0)
+                                            <ul class="recent-list">
+                                                @foreach($stats['recent_proxy_users'] as $proxyUser)
+                                                    <li class="recent-item">
+                                                        <div>
+                                                            <div class="fw-semibold">{{ $proxyUser->user }}</div>
+                                                            <div class="text-muted small">{{ $proxyUser->fullname ?? 'No full name' }}</div>
+                                                        </div>
+                                                        <div>
+                                                            @if($proxyUser->enabled)
+                                                                <span class="badge-status" style="background-color: #d1fae5; color: #065f46;">Active</span>
+                                                            @else
+                                                                <span class="badge-status" style="background-color: #fee2e2; color: #991b1b;">Disabled</span>
+                                                            @endif
+                                                        </div>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        @else
+                                            <div class="text-center text-muted py-4">
+                                                <p>No proxy users yet. Create your first one!</p>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Recent Allowed IPs -->
+                            <div class="col-md-6">
+                                <div class="card stat-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h5 class="fw-bold mb-0">Recent Whitelisted IPs</h5>
+                                            <a href="{{ route('ip.search', Auth::user()->id) }}" class="btn btn-sm btn-outline-primary">View All</a>
+                                        </div>
+                                        @if($stats['recent_allowed_ips']->count() > 0)
+                                            <ul class="recent-list">
+                                                @foreach($stats['recent_allowed_ips'] as $allowedIp)
+                                                    <li class="recent-item">
+                                                        <div class="d-flex align-items-center">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; color: #f59e0b;"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                                                            <code class="fw-bold" style="background-color: #fef3c7; padding: 4px 8px; border-radius: 4px; color: #92400e;">{{ $allowedIp->ip }}</code>
+                                                        </div>
+                                                        <div>
+                                                            <span class="badge bg-light text-dark">{{ $allowedIp->created_at->diffForHumans() }}</span>
+                                                        </div>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        @else
+                                            <div class="text-center text-muted py-4">
+                                                <p>No whitelisted IPs yet. Add one to get started!</p>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="row g-4">
+                            <div class="col-12">
+                                <div class="card stat-card">
+                                    <div class="card-body">
+                                        <h5 class="fw-bold mb-3">Quick Actions</h5>
+                                        <div class="row g-3">
+                                            <div class="col-md-3">
+                                                <a href="{{ route('squiduser.creator') }}" class="btn btn-outline-primary w-100 py-3">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                                                    <div class="fw-semibold">Add Proxy User</div>
+                                                </a>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <a href="{{ route('ip.creator') }}" class="btn btn-outline-warning w-100 py-3">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                                                    <div class="fw-semibold">Whitelist IP</div>
+                                                </a>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <a href="{{ route('squiduser.search', Auth::user()->id) }}" class="btn btn-outline-success w-100 py-3">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                                                    <div class="fw-semibold">View Proxies</div>
+                                                </a>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <a href="{{ route('ip.search', Auth::user()->id) }}" class="btn btn-outline-secondary w-100 py-3">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                                                    <div class="fw-semibold">View IPs</div>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
             </div>
         </div>
 
-        <!-- User Information -->
-        <div class="user-info">
-            <h3>Account Information</h3>
-            <div class="info-item">
-                <span class="info-label">Email</span>
-                <span class="info-value">{{ $user->email }}</span>
+        <footer class="footer mt-5 py-4">
+            <div class="container text-center">
+                <p class="text-muted small mb-0">
+                    &copy; 2024 euproxy. All rights reserved. |
+                    <a href="#" class="text-decoration-none text-muted-link" style="color: #6b7280;">Privacy</a> •
+                    <a href="#" class="text-decoration-none text-muted-link" style="color: #6b7280;">Terms</a> •
+                    <a href="#" class="text-decoration-none text-muted-link" style="color: #6b7280;">Support</a>
+                </p>
             </div>
-            <div class="info-item">
-                <span class="info-label">Full Name</span>
-                <span class="info-value">{{ $user->name }}</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">Member Since</span>
-                <span class="info-value">{{ $user->created_at->format('F j, Y') }}</span>
-            </div>
-            <div style="margin-top: 20px; display: flex; gap: 10px;">
-                <a href="#" class="btn-primary-gradient">Edit Profile</a>
-                <a href="#" class="btn-outline">Change Password</a>
-            </div>
-        </div>
+        </footer>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        // Proxy Status Distribution Chart
+        const proxyStatusCtx = document.getElementById('proxyStatusChart').getContext('2d');
+        const proxyStatusChart = new Chart(proxyStatusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Active Proxies', 'Disabled Proxies'],
+                datasets: [{
+                    data: [{{ $stats['enabled_proxy_users'] }}, {{ $stats['total_proxy_users'] - $stats['enabled_proxy_users'] }}],
+                    backgroundColor: [
+                        'rgba(16, 185, 129, 0.8)',
+                        'rgba(239, 68, 68, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(16, 185, 129, 1)',
+                        'rgba(239, 68, 68, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            font: {
+                                size: 12,
+                                family: 'Inter'
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Resources Chart
+        const resourcesCtx = document.getElementById('resourcesChart').getContext('2d');
+        const resourcesChart = new Chart(resourcesCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Proxy Accounts', 'Whitelisted IPs'],
+                datasets: [{
+                    label: 'Count',
+                    data: [{{ $stats['total_proxy_users'] }}, {{ $stats['total_allowed_ips'] }}],
+                    backgroundColor: [
+                        'rgba(139, 92, 246, 0.8)',
+                        'rgba(245, 158, 11, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(139, 92, 246, 1)',
+                        'rgba(245, 158, 11, 1)'
+                    ],
+                    borderWidth: 2,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            font: {
+                                family: 'Inter'
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font: {
+                                family: 'Inter'
+                            }
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    </script>
 </body>
 </html>
