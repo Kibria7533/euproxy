@@ -49,6 +49,7 @@ class SquidUserController extends Controller
             'fullname'=>$squidUser->fullname,
             'comment'=>$squidUser->comment,
             'enabled'=>$squidUser->enabled,
+            'bandwidth_limit_gb'=>$squidUser->bandwidth_limit_gb,
         ]);
     }
 
@@ -56,20 +57,29 @@ class SquidUserController extends Controller
     {
         $action($request->modifySquidUser());
 
-        return redirect()->route('squiduser.search', $request->user()->id);
+        if ($request->user()->is_administrator) {
+            return redirect()->route('squiduser.search', $request->user()->id);
+        }
+        return redirect()->route('user.squiduser.search');
     }
 
     public function create(CreateRequest $request, CreateAction $action): RedirectResponse
     {
         $action($request->createSquidUser());
 
-        return redirect()->route('squiduser.search', $request->user()->id);
+        if ($request->user()->is_administrator) {
+            return redirect()->route('squiduser.search', $request->user()->id);
+        }
+        return redirect()->route('user.squiduser.search');
     }
 
     public function destroy(DestroyRequest $request, DestroyAction $action): RedirectResponse
     {
         $action($request->destroySquidUser());
 
-        return redirect()->route('squiduser.search', $request->user()->id);
+        if ($request->user()->is_administrator) {
+            return redirect()->route('squiduser.search', $request->user()->id);
+        }
+        return redirect()->route('user.squiduser.search');
     }
 }

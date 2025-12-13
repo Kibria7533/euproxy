@@ -192,7 +192,7 @@
             </div>
         </nav>
 
-        @if(request()->is('admin*'))
+        @if(request()->is('admin*') || request()->is('user*'))
         <div class="container-fluid">
             <div class="row">
                 <nav class="col-md-2 d-none d-md-block bg-white sidebar" style="min-height: calc(100vh - 56px); border-right:1px solid #e2e8f0; position: sticky; top: 56px; height: calc(100vh - 56px); overflow-y: auto;">
@@ -205,15 +205,22 @@
                             </div>
                             <div class="flex-grow-1 ms-3">
                                 <div class="fw-semibold" style="font-size: 0.9rem;">{{ Auth::user()->name }}</div>
-                                <div class="text-muted small">Administrator</div>
+                                <div class="text-muted small">{{ Auth::user()->is_administrator ? 'Administrator' : 'User' }}</div>
                             </div>
                         </div>
 
                         <div class="mb-3">
-                            <a href="{{ route('admin.dashboard') }}" class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: #64748b; font-weight: 500; transition: all 0.2s;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 12px;"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-                                Dashboard
-                            </a>
+                            @if(Auth::user()->is_administrator)
+                                <a href="{{ route('admin.dashboard') }}" class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: #64748b; font-weight: 500; transition: all 0.2s;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 12px;"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                                    Dashboard
+                                </a>
+                            @else
+                                <a href="{{ route('user.dashboard') }}" class="sidebar-link {{ request()->routeIs('user.dashboard') ? 'active' : '' }}" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: #64748b; font-weight: 500; transition: all 0.2s;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 12px;"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                                    Dashboard
+                                </a>
+                            @endif
                         </div>
 
                         <div class="sidebar-section">
@@ -223,23 +230,37 @@
                             <ul class="nav flex-column">
                                 @can('create-user')
                                 <li class="nav-item">
-                                    <a class="sidebar-link {{ request()->routeIs('user.*') ? 'active' : '' }}" href="{{ route('user.search') }}" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: #64748b; font-weight: 500; transition: all 0.2s;">
+                                    <a class="sidebar-link {{ request()->routeIs('user.search') ? 'active' : '' }}" href="{{ route('user.search') }}" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: #64748b; font-weight: 500; transition: all 0.2s;">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 12px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                                         Users
                                     </a>
                                 </li>
                                 @endcan
                                 <li class="nav-item">
-                                    <a class="sidebar-link {{ request()->routeIs('squiduser.*') ? 'active' : '' }}" href="{{ route('squiduser.search',request()->user()->id) }}" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: #64748b; font-weight: 500; transition: all 0.2s;">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 12px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-                                        Proxy Users
-                                    </a>
+                                    @if(Auth::user()->is_administrator)
+                                        <a class="sidebar-link {{ request()->routeIs('squiduser.*') ? 'active' : '' }}" href="{{ route('squiduser.search',request()->user()->id) }}" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: #64748b; font-weight: 500; transition: all 0.2s;">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 12px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                                            Proxy Users
+                                        </a>
+                                    @else
+                                        <a class="sidebar-link {{ request()->routeIs('user.squiduser.*') ? 'active' : '' }}" href="{{ route('user.squiduser.search') }}" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: #64748b; font-weight: 500; transition: all 0.2s;">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 12px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                                            Proxy Users
+                                        </a>
+                                    @endif
                                 </li>
                                 <li class="nav-item">
-                                    <a class="sidebar-link {{ request()->routeIs('ip.*') ? 'active' : '' }}" href="{{ route('ip.search',request()->user()->id) }}" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: #64748b; font-weight: 500; transition: all 0.2s;">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 12px;"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
-                                        Allowed IPs
-                                    </a>
+                                    @if(Auth::user()->is_administrator)
+                                        <a class="sidebar-link {{ request()->routeIs('ip.*') ? 'active' : '' }}" href="{{ route('ip.search',request()->user()->id) }}" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: #64748b; font-weight: 500; transition: all 0.2s;">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 12px;"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                                            Allowed IPs
+                                        </a>
+                                    @else
+                                        <a class="sidebar-link {{ request()->routeIs('user.ip.*') ? 'active' : '' }}" href="{{ route('user.ip.search') }}" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: #64748b; font-weight: 500; transition: all 0.2s;">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 12px;"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                                            Allowed IPs
+                                        </a>
+                                    @endif
                                 </li>
                             </ul>
                         </div>

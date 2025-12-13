@@ -220,13 +220,13 @@
                             </div>
                             <ul class="nav flex-column">
                                 <li class="nav-item">
-                                    <a class="sidebar-link" href="{{ route('squiduser.search', Auth::user()->id) }}">
+                                    <a class="sidebar-link" href="{{ route('user.squiduser.search') }}">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
                                         Proxy Users
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="sidebar-link" href="{{ route('ip.search', Auth::user()->id) }}">
+                                    <a class="sidebar-link" href="{{ route('user.ip.search') }}">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
                                         Allowed IPs
                                     </a>
@@ -244,6 +244,33 @@
                             <h2 class="fw-bold mb-1">Welcome back, {{ Auth::user()->name }}!</h2>
                             <p class="text-muted">Here's your proxy management overview.</p>
                         </div>
+
+                        <!-- Session Messages -->
+                        @if(session('error'))
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <strong>Error!</strong> {{ session('error') }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        @endif
+                        @if(session('info'))
+                            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                                <strong>Info:</strong> {{ session('info') }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        @endif
+
+                        <!-- Bandwidth Warnings -->
+                        @if($stats['bandwidth_data']->where('is_over_limit', true)->isNotEmpty())
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <strong>Warning!</strong> Some proxy users exceeded their bandwidth limits.
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        @elseif($stats['bandwidth_data']->where('usage_percentage', '>=', 90)->isNotEmpty())
+                            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                                <strong>Notice:</strong> Some proxy users are approaching their limits.
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        @endif
 
                         <!-- Statistics Cards -->
                         <div class="row g-4 mb-4">
@@ -293,6 +320,70 @@
                             </div>
                         </div>
 
+                        <!-- Bandwidth Usage Overview -->
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-12">
+                                <div class="card stat-card">
+                                    <div class="card-body">
+                                        <h5 class="fw-bold mb-3">Bandwidth Usage Overview</h5>
+                                        @if($stats['bandwidth_data']->isNotEmpty())
+                                            <div class="table-responsive">
+                                                <table class="table table-hover">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Proxy User</th>
+                                                            <th>Used</th>
+                                                            <th>Limit</th>
+                                                            <th>Usage</th>
+                                                            <th>Status</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach($stats['bandwidth_data'] as $bw)
+                                                            <tr>
+                                                                <td><strong>{{ $bw['username'] }}</strong></td>
+                                                                <td>{{ $bw['total_bandwidth_gb'] }} GB</td>
+                                                                <td>
+                                                                    @if($bw['bandwidth_limit_gb'])
+                                                                        {{ $bw['bandwidth_limit_gb'] }} GB
+                                                                    @else
+                                                                        <span class="text-muted">Unlimited</span>
+                                                                    @endif
+                                                                </td>
+                                                                <td>
+                                                                    @if($bw['bandwidth_limit_gb'])
+                                                                        <div class="progress" style="height: 20px; min-width: 150px;">
+                                                                            <div class="progress-bar {{ $bw['usage_percentage'] >= 90 ? 'bg-danger' : ($bw['usage_percentage'] >= 75 ? 'bg-warning' : 'bg-success') }}"
+                                                                                 style="width: {{ min($bw['usage_percentage'], 100) }}%">
+                                                                                {{ $bw['usage_percentage'] }}%
+                                                                            </div>
+                                                                        </div>
+                                                                    @else
+                                                                        <span class="text-muted">N/A</span>
+                                                                    @endif
+                                                                </td>
+                                                                <td>
+                                                                    @if($bw['is_over_limit'])
+                                                                        <span class="badge bg-danger">Over Limit</span>
+                                                                    @elseif($bw['usage_percentage'] >= 90)
+                                                                        <span class="badge bg-warning text-dark">Near Limit</span>
+                                                                    @else
+                                                                        <span class="badge bg-success">Normal</span>
+                                                                    @endif
+                                                                </td>
+                                                            </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        @else
+                                            <p class="text-center text-muted py-4">No bandwidth data available.</p>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Charts Section -->
                         <div class="row g-4 mb-4">
                             <div class="col-md-6">
@@ -306,12 +397,48 @@
                             <div class="col-md-6">
                                 <div class="card stat-card">
                                     <div class="card-body">
-                                        <h5 class="fw-bold mb-3">My Resources</h5>
-                                        <canvas id="resourcesChart" height="200"></canvas>
+                                        <h5 class="fw-bold mb-3">Bandwidth Usage (Last 7 Days)</h5>
+                                        <canvas id="bandwidthChart" height="200"></canvas>
                                     </div>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Individual Bandwidth Usage Graphs -->
+                        @if($stats['bandwidth_data']->isNotEmpty())
+                        <div class="row g-4 mb-4">
+                            <div class="col-12">
+                                <h5 class="fw-bold mb-3">Bandwidth Usage per Proxy User (Last 7 Days)</h5>
+                            </div>
+                            @foreach($stats['bandwidth_data'] as $index => $bw)
+                            <div class="col-md-6">
+                                <div class="card stat-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h6 class="fw-bold mb-0">{{ $bw['username'] }}</h6>
+                                            @if($bw['is_over_limit'])
+                                                <span class="badge bg-danger">Over Limit</span>
+                                            @elseif($bw['usage_percentage'] >= 90)
+                                                <span class="badge bg-warning text-dark">Near Limit</span>
+                                            @else
+                                                <span class="badge bg-success">Normal</span>
+                                            @endif
+                                        </div>
+                                        <div class="mb-2 small text-muted">
+                                            <strong>Total Used:</strong> {{ $bw['total_bandwidth_gb'] }} GB
+                                            @if($bw['bandwidth_limit_gb'])
+                                                / {{ $bw['bandwidth_limit_gb'] }} GB ({{ $bw['usage_percentage'] }}%)
+                                            @else
+                                                (Unlimited)
+                                            @endif
+                                        </div>
+                                        <canvas id="userBandwidthChart{{ $index }}" height="200"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                        @endif
 
                         <!-- Recent Activity -->
                         <div class="row g-4 mb-4">
@@ -321,7 +448,7 @@
                                     <div class="card-body">
                                         <div class="d-flex justify-content-between align-items-center mb-3">
                                             <h5 class="fw-bold mb-0">Recent Proxy Users</h5>
-                                            <a href="{{ route('squiduser.search', Auth::user()->id) }}" class="btn btn-sm btn-outline-primary">View All</a>
+                                            <a href="{{ route('user.squiduser.search') }}" class="btn btn-sm btn-outline-primary">View All</a>
                                         </div>
                                         @if($stats['recent_proxy_users']->count() > 0)
                                             <ul class="recent-list">
@@ -356,7 +483,7 @@
                                     <div class="card-body">
                                         <div class="d-flex justify-content-between align-items-center mb-3">
                                             <h5 class="fw-bold mb-0">Recent Whitelisted IPs</h5>
-                                            <a href="{{ route('ip.search', Auth::user()->id) }}" class="btn btn-sm btn-outline-primary">View All</a>
+                                            <a href="{{ route('user.ip.search') }}" class="btn btn-sm btn-outline-primary">View All</a>
                                         </div>
                                         @if($stats['recent_allowed_ips']->count() > 0)
                                             <ul class="recent-list">
@@ -390,25 +517,25 @@
                                         <h5 class="fw-bold mb-3">Quick Actions</h5>
                                         <div class="row g-3">
                                             <div class="col-md-3">
-                                                <a href="{{ route('squiduser.creator') }}" class="btn btn-outline-primary w-100 py-3">
+                                                <a href="{{ route('user.squiduser.creator') }}" class="btn btn-outline-primary w-100 py-3">
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                                                     <div class="fw-semibold">Add Proxy User</div>
                                                 </a>
                                             </div>
                                             <div class="col-md-3">
-                                                <a href="{{ route('ip.creator') }}" class="btn btn-outline-warning w-100 py-3">
+                                                <a href="{{ route('user.ip.creator') }}" class="btn btn-outline-warning w-100 py-3">
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
                                                     <div class="fw-semibold">Whitelist IP</div>
                                                 </a>
                                             </div>
                                             <div class="col-md-3">
-                                                <a href="{{ route('squiduser.search', Auth::user()->id) }}" class="btn btn-outline-success w-100 py-3">
+                                                <a href="{{ route('user.squiduser.search') }}" class="btn btn-outline-success w-100 py-3">
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
                                                     <div class="fw-semibold">View Proxies</div>
                                                 </a>
                                             </div>
                                             <div class="col-md-3">
-                                                <a href="{{ route('ip.search', Auth::user()->id) }}" class="btn btn-outline-secondary w-100 py-3">
+                                                <a href="{{ route('user.ip.search') }}" class="btn btn-outline-secondary w-100 py-3">
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
                                                     <div class="fw-semibold">View IPs</div>
                                                 </a>
@@ -476,25 +603,20 @@
             }
         });
 
-        // Resources Chart
-        const resourcesCtx = document.getElementById('resourcesChart').getContext('2d');
-        const resourcesChart = new Chart(resourcesCtx, {
-            type: 'bar',
+        // Bandwidth Chart (Last 7 Days)
+        const bandwidthCtx = document.getElementById('bandwidthChart').getContext('2d');
+        const bandwidthChart = new Chart(bandwidthCtx, {
+            type: 'line',
             data: {
-                labels: ['Proxy Accounts', 'Whitelisted IPs'],
+                labels: {!! json_encode(array_column($stats['last_7_days_bandwidth'], 'label')) !!},
                 datasets: [{
-                    label: 'Count',
-                    data: [{{ $stats['total_proxy_users'] }}, {{ $stats['total_allowed_ips'] }}],
-                    backgroundColor: [
-                        'rgba(139, 92, 246, 0.8)',
-                        'rgba(245, 158, 11, 0.8)'
-                    ],
-                    borderColor: [
-                        'rgba(139, 92, 246, 1)',
-                        'rgba(245, 158, 11, 1)'
-                    ],
+                    label: 'Bandwidth (GB)',
+                    data: {!! json_encode(array_column($stats['last_7_days_bandwidth'], 'gb')) !!},
+                    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                    borderColor: 'rgba(139, 92, 246, 1)',
                     borderWidth: 2,
-                    borderRadius: 8
+                    fill: true,
+                    tension: 0.4
                 }]
             },
             options: {
@@ -502,14 +624,18 @@
                 maintainAspectRatio: true,
                 plugins: {
                     legend: {
-                        display: false
+                        position: 'bottom',
+                        labels: {
+                            font: {
+                                family: 'Inter'
+                            }
+                        }
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            stepSize: 1,
                             font: {
                                 family: 'Inter'
                             }
@@ -531,6 +657,63 @@
                 }
             }
         });
+
+        // Individual Bandwidth Charts per Proxy User
+        @if($stats['bandwidth_data']->isNotEmpty())
+            @foreach($stats['bandwidth_data'] as $index => $bw)
+                const userBandwidthCtx{{ $index }} = document.getElementById('userBandwidthChart{{ $index }}').getContext('2d');
+                const userBandwidthChart{{ $index }} = new Chart(userBandwidthCtx{{ $index }}, {
+                    type: 'bar',
+                    data: {
+                        labels: {!! json_encode(array_column($bw['last_7_days'], 'label')) !!},
+                        datasets: [{
+                            label: 'Bandwidth (GB)',
+                            data: {!! json_encode(array_column($bw['last_7_days'], 'gb')) !!},
+                            backgroundColor: @if($bw['is_over_limit']) 'rgba(239, 68, 68, 0.8)' @elseif($bw['usage_percentage'] >= 90) 'rgba(245, 158, 11, 0.8)' @else 'rgba(16, 185, 129, 0.8)' @endif,
+                            borderColor: @if($bw['is_over_limit']) 'rgba(239, 68, 68, 1)' @elseif($bw['usage_percentage'] >= 90) 'rgba(245, 158, 11, 1)' @else 'rgba(16, 185, 129, 1)' @endif,
+                            borderWidth: 2,
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    font: {
+                                        family: 'Inter'
+                                    },
+                                    callback: function(value) {
+                                        return value + ' GB';
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    font: {
+                                        family: 'Inter',
+                                        size: 10
+                                    }
+                                },
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            @endforeach
+        @endif
     </script>
 </body>
 </html>

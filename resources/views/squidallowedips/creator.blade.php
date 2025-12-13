@@ -9,16 +9,29 @@
 
                     <div class="card-body">
 
-                        <form method="post" action="{{ route('ip.create',request()->user()->id) }}">
-                            <div class="mb-3">
-                                <label for="ip" class="form-label">IP Address</label>
-                                <input type="text" class="form-control" id="ip" name="ip" value="{{ old('ip',$ip ?? '') }}">
-                            </div>
+                        @if(Auth::user()->is_administrator)
+                            <form method="post" action="{{ route('ip.create',request()->user()->id) }}">
+                                <div class="mb-3">
+                                    <label for="ip" class="form-label">IP Address</label>
+                                    <input type="text" class="form-control" id="ip" name="ip" value="{{ old('ip',$ip ?? '') }}">
+                                </div>
 
-                            <button type="submit" class="btn btn-primary mb-3">Add</button>
+                                <button type="submit" class="btn btn-primary mb-3">Add</button>
 
-                            @csrf
-                        </form>
+                                @csrf
+                            </form>
+                        @else
+                            <form method="post" action="{{ route('user.ip.create') }}">
+                                <div class="mb-3">
+                                    <label for="ip" class="form-label">IP Address</label>
+                                    <input type="text" class="form-control" id="ip" name="ip" value="{{ old('ip',$ip ?? '') }}">
+                                </div>
+
+                                <button type="submit" class="btn btn-primary mb-3">Add</button>
+
+                                @csrf
+                            </form>
+                        @endif
 
                     </div>
                 </div>

@@ -5,6 +5,7 @@ namespace App\Http\Requests\SquidUser;
 use App\Models\SquidUser;
 use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
 
 class CreateRequest extends FormRequest
 {
@@ -13,7 +14,10 @@ class CreateRequest extends FormRequest
      */
     public function authorize(Gate $gate): bool
     {
-        $auth = $gate->allows('create-squid-user', $this->route()->parameter('user_id'));
+        // For user routes without user_id parameter, use authenticated user's id
+        $userId = $this->route()->parameter('user_id') ?? Auth::user()->id;
+
+        $auth = $gate->allows('create-squid-user', $userId);
 
         return $auth;
     }
@@ -38,13 +42,15 @@ class CreateRequest extends FormRequest
             'enabled'=>'filled|digits_between:0,1',
             'fullname'=>'nullable',
             'comment'=>'nullable',
+            'bandwidth_limit_gb'=>'nullable|numeric|min:0|max:99999999.99',
         ];
     }
 
     public function createSquidUser() : SquidUser
     {
         $squidUser = new SquidUser($this->validated());
-        $squidUser->user_id = $this->route()->parameter('user_id');
+        // For user routes without user_id parameter, use authenticated user's id
+        $squidUser->user_id = $this->route()->parameter('user_id') ?? Auth::user()->id;
 
         return $squidUser;
     }

@@ -9,10 +9,17 @@
 
                     <div class="card-body">
 
-                        <form method="post" action="{{ route('squiduser.modify',$id) }}">
-                            @include('squidusers.commons.form',['submit'=>'Modify'])
-                            @csrf
-                        </form>
+                        @if(Auth::user()->is_administrator)
+                            <form method="post" action="{{ route('squiduser.modify',$id) }}">
+                                @include('squidusers.commons.form',['submit'=>'Modify'])
+                                @csrf
+                            </form>
+                        @else
+                            <form method="post" action="{{ route('user.squiduser.modify',$id) }}">
+                                @include('squidusers.commons.form',['submit'=>'Modify'])
+                                @csrf
+                            </form>
+                        @endif
 
                     </div>
                 </div>

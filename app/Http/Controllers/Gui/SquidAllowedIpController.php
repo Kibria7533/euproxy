@@ -30,13 +30,19 @@ class SquidAllowedIpController extends Controller
     {
         $action($request->createSquidAllowedIp());
 
-        return redirect()->route('ip.search', $request->user()->id);
+        if ($request->user()->is_administrator) {
+            return redirect()->route('ip.search', $request->user()->id);
+        }
+        return redirect()->route('user.ip.search');
     }
 
     public function destroy(DestroyRequest $request, DestroyAction $action): RedirectResponse
     {
         $action($request->destroySquidAllowedIp());
 
-        return redirect()->route('ip.search', $request->user()->id);
+        if ($request->user()->is_administrator) {
+            return redirect()->route('ip.search', $request->user()->id);
+        }
+        return redirect()->route('user.ip.search');
     }
 }

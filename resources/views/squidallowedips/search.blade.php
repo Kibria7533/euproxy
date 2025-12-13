@@ -66,10 +66,17 @@
             <h3 class="fw-bold mb-1">Allowed IP Addresses</h3>
             <p class="text-muted mb-0">Manage whitelisted IP addresses for proxy access</p>
         </div>
-        <a href="{{ route('ip.creator') }}" class="btn btn-warning text-white" style="border-radius: 8px; padding: 10px 20px; font-weight: 500;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; vertical-align: middle;"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
-            Add IP Address
-        </a>
+        @if(Auth::user()->is_administrator)
+            <a href="{{ route('ip.creator') }}" class="btn btn-warning text-white" style="border-radius: 8px; padding: 10px 20px; font-weight: 500;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; vertical-align: middle;"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                Add IP Address
+            </a>
+        @else
+            <a href="{{ route('user.ip.creator') }}" class="btn btn-warning text-white" style="border-radius: 8px; padding: 10px 20px; font-weight: 500;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; vertical-align: middle;"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                Add IP Address
+            </a>
+        @endif
     </div>
 
     <div class="card" style="border-radius: 12px; border: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);">
@@ -107,13 +114,23 @@
                                     </div>
                                 </td>
                                 <td style="text-align: right; padding-right: 1.5rem;">
-                                    <form method="post" action="{{ route('ip.destroy',$ip->id) }}" style="display: inline;">
-                                        @csrf
-                                        <button type="submit" class="action-btn action-btn-delete" onclick="return confirm('Are you sure you want to remove this IP address?')">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                            Remove
-                                        </button>
-                                    </form>
+                                    @if(Auth::user()->is_administrator)
+                                        <form method="post" action="{{ route('ip.destroy',$ip->id) }}" style="display: inline;">
+                                            @csrf
+                                            <button type="submit" class="action-btn action-btn-delete" onclick="return confirm('Are you sure you want to remove this IP address?')">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                                Remove
+                                            </button>
+                                        </form>
+                                    @else
+                                        <form method="post" action="{{ route('user.ip.destroy',$ip->id) }}" style="display: inline;">
+                                            @csrf
+                                            <button type="submit" class="action-btn action-btn-delete" onclick="return confirm('Are you sure you want to remove this IP address?')">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                                Remove
+                                            </button>
+                                        </form>
+                                    @endif
                                 </td>
                             </tr>
                         @empty

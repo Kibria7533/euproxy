@@ -5,6 +5,7 @@ namespace App\Http\Requests\SquidAllowedIp;
 use App\Models\SquidAllowedIp;
 use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
 
 class CreateRequest extends FormRequest
 {
@@ -13,7 +14,10 @@ class CreateRequest extends FormRequest
      */
     public function authorize(Gate $gate): bool
     {
-        $auth = $gate->allows('create-squid-allowed-ip', $this->route()->parameter('user_id'));
+        // For user routes without user_id parameter, use authenticated user's id
+        $userId = $this->route()->parameter('user_id') ?? Auth::user()->id;
+
+        $auth = $gate->allows('create-squid-allowed-ip', $userId);
 
         return $auth;
     }
@@ -31,7 +35,8 @@ class CreateRequest extends FormRequest
     public function createSquidAllowedIp() : SquidAllowedIp
     {
         $squidAllowedIp = new SquidAllowedIp($this->validated());
-        $squidAllowedIp->user_id = $this->route()->parameter('user_id');
+        // For user routes without user_id parameter, use authenticated user's id
+        $squidAllowedIp->user_id = $this->route()->parameter('user_id') ?? Auth::user()->id;
 
         return $squidAllowedIp;
     }

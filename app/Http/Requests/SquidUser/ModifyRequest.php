@@ -41,6 +41,7 @@ class ModifyRequest extends FormRequest
             'enabled'=>'filled|digits_between:0,1',
             'fullname'=>'nullable',
             'comment'=>'nullable',
+            'bandwidth_limit_gb'=>'nullable|numeric|min:0|max:99999999.99',
         ];
     }
 

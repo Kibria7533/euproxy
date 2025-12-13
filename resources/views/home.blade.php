@@ -69,6 +69,17 @@
         <p class="text-muted">Here's what's happening with your proxy system today.</p>
     </div>
 
+    <!-- System Bandwidth Warnings -->
+    @php
+        $overLimitUsers = $stats['squid_users_bandwidth']->where('is_over_limit', true);
+    @endphp
+    @if($overLimitUsers->isNotEmpty())
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>System Alert!</strong> {{ $overLimitUsers->count() }} proxy user(s) exceeded bandwidth limits.
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     <!-- Statistics Cards -->
     <div class="row g-4 mb-4">
         <!-- Total Users -->
@@ -127,6 +138,49 @@
                     </div>
                     <div class="stat-value mb-1">{{ $stats['total_allowed_ips'] }}</div>
                     <div class="stat-label">Whitelisted IPs</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Bandwidth Users Section -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <h5 class="fw-bold mb-3">Top Bandwidth Users (Last 7 Days)</h5>
+                    @if($stats['top_bandwidth_users']->isNotEmpty())
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Username</th>
+                                        <th>Bandwidth Used</th>
+                                        <th>Visual</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($stats['top_bandwidth_users'] as $index => $user)
+                                        <tr>
+                                            <td><strong>#{{ $index + 1 }}</strong></td>
+                                            <td>{{ $user->username }}</td>
+                                            <td>{{ $user->total_gb }} GB</td>
+                                            <td>
+                                                <div class="progress" style="height: 20px; width: 200px;">
+                                                    <div class="progress-bar bg-primary"
+                                                         style="width: {{ ($user->total_gb / max($stats['top_bandwidth_users']->max('total_gb'), 1)) * 100 }}%">
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <p class="text-center text-muted py-4">No bandwidth data available.</p>
+                    @endif
                 </div>
             </div>
         </div>
@@ -216,6 +270,18 @@
                 <div class="card-body">
                     <h5 class="fw-bold mb-3">System Overview</h5>
                     <canvas id="systemOverviewChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bandwidth Chart -->
+    <div class="row g-4 mt-2">
+        <div class="col-md-12">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <h5 class="fw-bold mb-3">Top Users by Bandwidth</h5>
+                    <canvas id="bandwidthUsersChart" height="150"></canvas>
                 </div>
             </div>
         </div>
@@ -359,5 +425,58 @@
             }
         }
     });
+
+    // Bandwidth Users Chart
+    @if($stats['top_bandwidth_users']->isNotEmpty())
+    const bandwidthUsersCtx = document.getElementById('bandwidthUsersChart').getContext('2d');
+    const bandwidthUsersChart = new Chart(bandwidthUsersCtx, {
+        type: 'bar',
+        data: {
+            labels: {!! json_encode($stats['top_bandwidth_users']->pluck('username')->toArray()) !!},
+            datasets: [{
+                label: 'Bandwidth (GB)',
+                data: {!! json_encode($stats['top_bandwidth_users']->pluck('total_gb')->toArray()) !!},
+                backgroundColor: 'rgba(99, 102, 241, 0.8)',
+                borderColor: 'rgba(99, 102, 241, 1)',
+                borderWidth: 2,
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        font: {
+                            family: 'Inter'
+                        },
+                        callback: function(value) {
+                            return value + ' GB';
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    ticks: {
+                        font: {
+                            family: 'Inter'
+                        }
+                    },
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+    @endif
 </script>
 @endsection

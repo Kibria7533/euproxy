@@ -31,7 +31,7 @@ Route::prefix('admin')->group(function () {
     Route::post('/logout', [\App\Http\Controllers\Auth\AdminLoginController::class, 'logout'])->name('admin.logout');
 
     // Admin authenticated routes (existing dashboard)
-    Route::middleware('auth:web')->group(function () {
+    Route::middleware(['auth:web', 'admin'])->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Admin\AdminDashboardController::class, 'index'])->name('admin.dashboard');
         
         Route::prefix('account')->group(function () {
@@ -75,8 +75,26 @@ Route::prefix('user')->group(function () {
     Route::post('/logout', [\App\Http\Controllers\Auth\UserLoginController::class, 'logout'])->name('user.logout');
 
     // User authenticated routes (new dashboard - to be created)
-    Route::middleware('auth:web')->group(function () {
+    Route::middleware(['auth:web', 'user'])->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\User\UserDashboardController::class, 'index'])->name('user.dashboard');
+
+        // User's proxy management routes (uses same controllers as admin, but authorization via policies)
+        Route::prefix('squiduser')->group(function () {
+            Route::get('search', [SquidUserController::class, 'search'])->name('user.squiduser.search');
+            Route::get('creator', [SquidUserController::class, 'creator'])->name('user.squiduser.creator');
+            Route::get('editor/{id}', [SquidUserController::class, 'editor'])->name('user.squiduser.editor');
+            Route::post('create', [SquidUserController::class, 'create'])->name('user.squiduser.create');
+            Route::post('modify/{id}', [SquidUserController::class, 'modify'])->name('user.squiduser.modify');
+            Route::post('destroy/{id}', [SquidUserController::class, 'destroy'])->name('user.squiduser.destroy');
+        });
+
+        Route::prefix('ip')->group(function () {
+            Route::get('search', [SquidAllowedIpController::class, 'search'])->name('user.ip.search');
+            Route::get('creator', [SquidAllowedIpController::class, 'creator'])->name('user.ip.creator');
+            Route::get('editor/{id}', [SquidAllowedIpController::class, 'editor'])->name('user.ip.editor');
+            Route::post('create', [SquidAllowedIpController::class, 'create'])->name('user.ip.create');
+            Route::post('destroy/{id}', [SquidAllowedIpController::class, 'destroy'])->name('user.ip.destroy');
+        });
     });
 });
 
