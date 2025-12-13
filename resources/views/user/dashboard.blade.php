@@ -390,55 +390,86 @@
                                 <div class="card stat-card">
                                     <div class="card-body">
                                         <h5 class="fw-bold mb-3">Proxy Status</h5>
-                                        <canvas id="proxyStatusChart" height="200"></canvas>
+                                        <div style="position: relative; height: 200px; width: 100%;">
+                                            <canvas id="proxyStatusChart"></canvas>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="card stat-card">
                                     <div class="card-body">
-                                        <h5 class="fw-bold mb-3">Bandwidth Usage (Last 7 Days)</h5>
-                                        <canvas id="bandwidthChart" height="200"></canvas>
+                                        <h5 class="fw-bold mb-3">Quick Stats</h5>
+                                        <div class="d-flex justify-content-around align-items-center" style="height: 200px;">
+                                            <div class="text-center">
+                                                <div style="font-size: 2rem; font-weight: 700; color: #8b5cf6;">{{ $stats['total_proxy_users'] }}</div>
+                                                <div class="text-muted">Total Proxies</div>
+                                            </div>
+                                            <div class="text-center">
+                                                <div style="font-size: 2rem; font-weight: 700; color: #10b981;">{{ $stats['enabled_proxy_users'] }}</div>
+                                                <div class="text-muted">Active</div>
+                                            </div>
+                                            <div class="text-center">
+                                                <div style="font-size: 2rem; font-weight: 700; color: #f59e0b;">{{ $stats['total_allowed_ips'] }}</div>
+                                                <div class="text-muted">IPs</div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Individual Bandwidth Usage Graphs -->
-                        @if($stats['bandwidth_data']->isNotEmpty())
+                        <!-- Dynamic Bandwidth Chart with Filters -->
                         <div class="row g-4 mb-4">
                             <div class="col-12">
-                                <h5 class="fw-bold mb-3">Bandwidth Usage per Proxy User (Last 7 Days)</h5>
-                            </div>
-                            @foreach($stats['bandwidth_data'] as $index => $bw)
-                            <div class="col-md-6">
                                 <div class="card stat-card">
                                     <div class="card-body">
-                                        <div class="d-flex justify-content-between align-items-center mb-3">
-                                            <h6 class="fw-bold mb-0">{{ $bw['username'] }}</h6>
-                                            @if($bw['is_over_limit'])
-                                                <span class="badge bg-danger">Over Limit</span>
-                                            @elseif($bw['usage_percentage'] >= 90)
-                                                <span class="badge bg-warning text-dark">Near Limit</span>
-                                            @else
-                                                <span class="badge bg-success">Normal</span>
-                                            @endif
+                                        <div class="d-flex justify-content-between align-items-center mb-4">
+                                            <h5 class="fw-bold mb-0">Bandwidth Usage Analytics</h5>
+                                            <div class="d-flex gap-2 align-items-center flex-wrap">
+                                                <!-- Time Range Filter -->
+                                                <select id="timeRangeFilter" class="form-select form-select-sm" style="width: auto; min-width: 120px;">
+                                                    <option value="hour">Last Hour</option>
+                                                    <option value="today">Today</option>
+                                                    <option value="7days" selected>Last 7 Days</option>
+                                                    <option value="30days">Last 30 Days</option>
+                                                </select>
+
+                                                <!-- Proxy User Filter -->
+                                                @if($stats['bandwidth_data']->isNotEmpty())
+                                                <select id="proxyUserFilter" class="form-select form-select-sm" style="width: auto; min-width: 180px;">
+                                                    <option value="all" selected>All Proxy Users</option>
+                                                    @foreach($stats['bandwidth_data'] as $bw)
+                                                    <option value="{{ $bw['username'] }}">{{ $bw['username'] }}</option>
+                                                    @endforeach
+                                                </select>
+                                                @endif
+
+                                                <button id="refreshChart" class="btn btn-sm btn-primary">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                                                    Refresh
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div class="mb-2 small text-muted">
-                                            <strong>Total Used:</strong> {{ $bw['total_bandwidth_gb'] }} GB
-                                            @if($bw['bandwidth_limit_gb'])
-                                                / {{ $bw['bandwidth_limit_gb'] }} GB ({{ $bw['usage_percentage'] }}%)
-                                            @else
-                                                (Unlimited)
-                                            @endif
+
+                                        <div id="chartLoadingIndicator" class="text-center py-4" style="display: none;">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                            <p class="text-muted mt-2">Loading bandwidth data...</p>
                                         </div>
-                                        <canvas id="userBandwidthChart{{ $index }}" height="200"></canvas>
+
+                                        <div style="position: relative; height: 350px; width: 100%;">
+                                            <canvas id="bandwidthChart"></canvas>
+                                        </div>
+
+                                        <div class="mt-3 text-muted small">
+                                            <strong>Tip:</strong> Use the dropdown above to view bandwidth for a specific proxy user, or select "All Proxy Users" to see combined usage across all your proxies.
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            @endforeach
                         </div>
-                        @endif
 
                         <!-- Recent Activity -->
                         <div class="row g-4 mb-4">
@@ -567,153 +598,254 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
         // Proxy Status Distribution Chart
-        const proxyStatusCtx = document.getElementById('proxyStatusChart').getContext('2d');
-        const proxyStatusChart = new Chart(proxyStatusCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Active Proxies', 'Disabled Proxies'],
-                datasets: [{
-                    data: [{{ $stats['enabled_proxy_users'] }}, {{ $stats['total_proxy_users'] - $stats['enabled_proxy_users'] }}],
-                    backgroundColor: [
-                        'rgba(16, 185, 129, 0.8)',
-                        'rgba(239, 68, 68, 0.8)'
-                    ],
-                    borderColor: [
-                        'rgba(16, 185, 129, 1)',
-                        'rgba(239, 68, 68, 1)'
-                    ],
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 20,
-                            font: {
+        const proxyStatusCtx = document.getElementById('proxyStatusChart');
+        if (proxyStatusCtx) {
+            const proxyStatusChart = new Chart(proxyStatusCtx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Active Proxies', 'Disabled Proxies'],
+                    datasets: [{
+                        data: [{{ $stats['enabled_proxy_users'] }}, {{ $stats['total_proxy_users'] - $stats['enabled_proxy_users'] }}],
+                        backgroundColor: [
+                            'rgba(16, 185, 129, 0.8)',
+                            'rgba(239, 68, 68, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(16, 185, 129, 1)',
+                            'rgba(239, 68, 68, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 12,
+                                    family: 'Inter'
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Dynamic Bandwidth Chart
+        const bandwidthCtxElement = document.getElementById('bandwidthChart');
+        let bandwidthChart = null;
+
+        if (bandwidthCtxElement) {
+            const bandwidthCtx = bandwidthCtxElement.getContext('2d');
+            bandwidthChart = new Chart(bandwidthCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Bandwidth (GB)',
+                        data: [],
+                        backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                        borderColor: 'rgba(139, 92, 246, 1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                        pointBackgroundColor: 'rgba(139, 92, 246, 1)',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 1,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 750
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    family: 'Inter',
+                                    size: 11
+                                },
+                                usePointStyle: true,
+                                padding: 12
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 10,
+                            titleFont: {
+                                size: 13,
+                                family: 'Inter'
+                            },
+                            bodyFont: {
                                 size: 12,
                                 family: 'Inter'
+                            },
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + ' GB';
+                                }
                             }
-                        }
-                    }
-                }
-            }
-        });
-
-        // Bandwidth Chart (Last 7 Days)
-        const bandwidthCtx = document.getElementById('bandwidthChart').getContext('2d');
-        const bandwidthChart = new Chart(bandwidthCtx, {
-            type: 'line',
-            data: {
-                labels: {!! json_encode(array_column($stats['last_7_days_bandwidth'], 'label')) !!},
-                datasets: [{
-                    label: 'Bandwidth (GB)',
-                    data: {!! json_encode(array_column($stats['last_7_days_bandwidth'], 'gb')) !!},
-                    backgroundColor: 'rgba(139, 92, 246, 0.2)',
-                    borderColor: 'rgba(139, 92, 246, 1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            font: {
-                                family: 'Inter'
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            font: {
-                                family: 'Inter'
-                            }
-                        },
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.05)'
                         }
                     },
-                    x: {
-                        ticks: {
-                            font: {
-                                family: 'Inter'
-                            }
-                        },
-                        grid: {
-                            display: false
-                        }
-                    }
-                }
-            }
-        });
-
-        // Individual Bandwidth Charts per Proxy User
-        @if($stats['bandwidth_data']->isNotEmpty())
-            @foreach($stats['bandwidth_data'] as $index => $bw)
-                const userBandwidthCtx{{ $index }} = document.getElementById('userBandwidthChart{{ $index }}').getContext('2d');
-                const userBandwidthChart{{ $index }} = new Chart(userBandwidthCtx{{ $index }}, {
-                    type: 'bar',
-                    data: {
-                        labels: {!! json_encode(array_column($bw['last_7_days'], 'label')) !!},
-                        datasets: [{
-                            label: 'Bandwidth (GB)',
-                            data: {!! json_encode(array_column($bw['last_7_days'], 'gb')) !!},
-                            backgroundColor: @if($bw['is_over_limit']) 'rgba(239, 68, 68, 0.8)' @elseif($bw['usage_percentage'] >= 90) 'rgba(245, 158, 11, 0.8)' @else 'rgba(16, 185, 129, 0.8)' @endif,
-                            borderColor: @if($bw['is_over_limit']) 'rgba(239, 68, 68, 1)' @elseif($bw['usage_percentage'] >= 90) 'rgba(245, 158, 11, 1)' @else 'rgba(16, 185, 129, 1)' @endif,
-                            borderWidth: 2,
-                            borderRadius: 6
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        plugins: {
-                            legend: {
-                                display: false
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                ticks: {
-                                    font: {
-                                        family: 'Inter'
-                                    },
-                                    callback: function(value) {
-                                        return value + ' GB';
-                                    }
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                font: {
+                                    family: 'Inter',
+                                    size: 10
                                 },
-                                grid: {
-                                    color: 'rgba(0, 0, 0, 0.05)'
+                                callback: function(value) {
+                                    return value.toFixed(1) + ' GB';
                                 }
                             },
-                            x: {
-                                ticks: {
-                                    font: {
-                                        family: 'Inter',
-                                        size: 10
-                                    }
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)',
+                                drawBorder: false
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: {
+                                    family: 'Inter',
+                                    size: 10
                                 },
-                                grid: {
-                                    display: false
-                                }
+                                maxRotation: 45,
+                                minRotation: 0,
+                                autoSkip: true,
+                                maxTicksLimit: 20
+                            },
+                            grid: {
+                                display: false
                             }
                         }
                     }
+                }
+            });
+        }
+
+        // Function to load bandwidth data via AJAX
+        function loadBandwidthData() {
+            if (!bandwidthChart) {
+                console.error('Bandwidth chart not initialized');
+                return;
+            }
+
+            const timeRange = document.getElementById('timeRangeFilter').value;
+            const proxyUserSelect = document.getElementById('proxyUserFilter');
+            let selectedUsers = [];
+
+            if (proxyUserSelect) {
+                const selectedValue = proxyUserSelect.value;
+
+                // If "all" is selected or nothing is selected, get all users
+                if (!selectedValue || selectedValue === 'all') {
+                    // Collect all usernames except the "all" option
+                    for (let i = 1; i < proxyUserSelect.options.length; i++) {
+                        selectedUsers.push(proxyUserSelect.options[i].value);
+                    }
+                } else {
+                    // Single user selected
+                    selectedUsers.push(selectedValue);
+                }
+            }
+
+            console.log('Loading bandwidth data for users:', selectedUsers, 'Range:', timeRange);
+
+            // Show loading indicator
+            const loadingIndicator = document.getElementById('chartLoadingIndicator');
+            const chartCanvas = document.getElementById('bandwidthChart');
+
+            if (loadingIndicator) loadingIndicator.style.display = 'block';
+            if (chartCanvas) chartCanvas.style.opacity = '0.3';
+
+            // Build query parameters
+            const params = new URLSearchParams();
+            params.append('range', timeRange);
+
+            // Add each username as a separate parameter
+            if (selectedUsers.length > 0) {
+                selectedUsers.forEach(user => {
+                    params.append('usernames[]', user);
                 });
-            @endforeach
-        @endif
+            }
+
+            // Fetch data via AJAX
+            fetch('{{ route('user.bandwidth.data') }}?' + params.toString(), {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('HTTP error ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Received data:', data);
+
+                if (data.success && bandwidthChart) {
+                    // Update chart
+                    bandwidthChart.data.labels = data.labels || [];
+                    bandwidthChart.data.datasets[0].data = data.values || [];
+                    bandwidthChart.update('none'); // Use 'none' for instant update without animation
+
+                    // Hide loading indicator
+                    if (loadingIndicator) loadingIndicator.style.display = 'none';
+                    if (chartCanvas) chartCanvas.style.opacity = '1';
+
+                    console.log('Chart updated successfully');
+                } else {
+                    console.error('Data fetch failed:', data);
+                    if (loadingIndicator) loadingIndicator.style.display = 'none';
+                    if (chartCanvas) chartCanvas.style.opacity = '1';
+                    if (typeof toastr !== 'undefined' && data.message) {
+                        toastr.error(data.message);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error loading bandwidth data:', error);
+                if (loadingIndicator) loadingIndicator.style.display = 'none';
+                if (chartCanvas) chartCanvas.style.opacity = '1';
+                if (typeof toastr !== 'undefined') {
+                    toastr.error('Failed to load bandwidth data: ' + error.message);
+                }
+            });
+        }
+
+        // Event listeners for filters
+        const timeRangeFilter = document.getElementById('timeRangeFilter');
+        const proxyUserFilter = document.getElementById('proxyUserFilter');
+        const refreshButton = document.getElementById('refreshChart');
+
+        if (timeRangeFilter) {
+            timeRangeFilter.addEventListener('change', loadBandwidthData);
+        }
+        if (proxyUserFilter) {
+            proxyUserFilter.addEventListener('change', loadBandwidthData);
+        }
+        if (refreshButton) {
+            refreshButton.addEventListener('click', loadBandwidthData);
+        }
+
+        // Load initial data
+        if (bandwidthChart) {
+            loadBandwidthData();
+        }
     </script>
 </body>
 </html>

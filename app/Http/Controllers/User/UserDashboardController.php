@@ -64,4 +64,75 @@ class UserDashboardController extends Controller
 
         return view('user.dashboard', compact('user', 'stats'));
     }
+
+    /**
+     * Get bandwidth data via AJAX
+     */
+    public function getBandwidthData(Request $request)
+    {
+        try {
+            $user = Auth::user();
+
+            // Get user's squid usernames
+            $userSquidUsers = SquidUser::where('user_id', $user->id)->get();
+            $allUsernames = $userSquidUsers->pluck('user')->toArray();
+
+            // Get filter parameters
+            $range = $request->input('range', '7days');
+
+            // Get usernames array (sent as usernames[] from JavaScript)
+            $selectedUsernames = $request->input('usernames', []);
+
+            // If empty, use all usernames
+            if (empty($selectedUsernames) || !is_array($selectedUsernames)) {
+                $selectedUsernames = $allUsernames;
+            }
+
+            $startDate = $request->input('start_date');
+            $endDate = $request->input('end_date');
+
+            // Ensure selected usernames belong to this user
+            $selectedUsernames = array_intersect($selectedUsernames, $allUsernames);
+
+            if (empty($selectedUsernames)) {
+                $selectedUsernames = $allUsernames;
+            }
+
+            // Get bandwidth data
+            $bandwidthData = $this->bandwidthService->getBandwidthData(
+                $selectedUsernames,
+                $range,
+                $startDate,
+                $endDate
+            );
+
+            \Log::info('Bandwidth data request', [
+                'range' => $range,
+                'usernames' => $selectedUsernames,
+                'data_count' => count($bandwidthData),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $bandwidthData,
+                'labels' => array_column($bandwidthData, 'label'),
+                'values' => array_column($bandwidthData, 'gb'),
+                'debug' => [
+                    'range' => $range,
+                    'usernames_count' => count($selectedUsernames),
+                    'data_points' => count($bandwidthData),
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Bandwidth data fetch error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to fetch bandwidth data',
+                'message' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
+    }
 }

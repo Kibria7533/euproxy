@@ -77,6 +77,7 @@ Route::prefix('user')->group(function () {
     // User authenticated routes (new dashboard - to be created)
     Route::middleware(['auth:web', 'user'])->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\User\UserDashboardController::class, 'index'])->name('user.dashboard');
+        Route::get('/bandwidth-data', [\App\Http\Controllers\User\UserDashboardController::class, 'getBandwidthData'])->name('user.bandwidth.data');
 
         // User's proxy management routes (uses same controllers as admin, but authorization via policies)
         Route::prefix('squiduser')->group(function () {
