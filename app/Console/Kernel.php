@@ -12,7 +12,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Sync bandwidth usage from proxy_requests to squid_users every 5 minutes
+        $schedule->command('bandwidth:sync-usage')->everyFiveMinutes();
     }
 
     /**
