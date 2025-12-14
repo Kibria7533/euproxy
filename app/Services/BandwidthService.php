@@ -28,11 +28,13 @@ class BandwidthService
         for ($i = 6; $i >= 0; $i--) {
             $date = now()->subDays($i)->format('Y-m-d');
             $found = $results->firstWhere('date', $date);
+            $bytes = $found ? $found->total_bytes : 0;
             $data[] = [
                 'date' => $date,
                 'label' => now()->subDays($i)->format('M d'),
-                'bytes' => $found ? $found->total_bytes : 0,
-                'gb' => $found ? round($found->total_bytes / 1073741824, 2) : 0,
+                'bytes' => $bytes,
+                'gb' => round($bytes / 1073741824, 2),
+                'mb' => round($bytes / 1048576, 2),
             ];
         }
 
@@ -56,6 +58,7 @@ class BandwidthService
                     'label' => now()->subDays($i)->format('M d'),
                     'bytes' => 0,
                     'gb' => 0,
+                    'mb' => 0,
                 ];
             }
             return $data;
@@ -74,11 +77,13 @@ class BandwidthService
         for ($i = 6; $i >= 0; $i--) {
             $date = now()->subDays($i)->format('Y-m-d');
             $found = $results->firstWhere('date', $date);
+            $bytes = $found ? $found->total_bytes : 0;
             $data[] = [
                 'date' => $date,
                 'label' => now()->subDays($i)->format('M d'),
-                'bytes' => $found ? $found->total_bytes : 0,
-                'gb' => $found ? round($found->total_bytes / 1073741824, 2) : 0,
+                'bytes' => $bytes,
+                'gb' => round($bytes / 1073741824, 2),
+                'mb' => round($bytes / 1048576, 2),
             ];
         }
 
@@ -103,6 +108,7 @@ class BandwidthService
             ->get()
             ->map(function($item) {
                 $item->total_gb = round($item->total_bytes / 1073741824, 2);
+                $item->total_mb = round($item->total_bytes / 1048576, 2);
                 return $item;
             });
     }

@@ -342,10 +342,14 @@
                                                         @foreach($stats['bandwidth_data'] as $bw)
                                                             <tr>
                                                                 <td><strong>{{ $bw['username'] }}</strong></td>
-                                                                <td>{{ $bw['total_bandwidth_gb'] }} GB</td>
+                                                                <td>
+                                                                    {{ $bw['total_bandwidth_gb'] }} GB
+                                                                    <span class="text-muted small">({{ round($bw['total_bandwidth_gb'] * 1024, 2) }} MB)</span>
+                                                                </td>
                                                                 <td>
                                                                     @if($bw['bandwidth_limit_gb'])
                                                                         {{ $bw['bandwidth_limit_gb'] }} GB
+                                                                        <span class="text-muted small">({{ round($bw['bandwidth_limit_gb'] * 1024, 2) }} MB)</span>
                                                                     @else
                                                                         <span class="text-muted">Unlimited</span>
                                                                     @endif
@@ -444,6 +448,12 @@
                                                     @endforeach
                                                 </select>
                                                 @endif
+
+                                                <!-- Unit Selector -->
+                                                <select id="unitSelector" class="form-select form-select-sm" style="width: auto; min-width: 80px;">
+                                                    <option value="gb">GB</option>
+                                                    <option value="mb">MB</option>
+                                                </select>
 
                                                 <button id="refreshChart" class="btn btn-sm btn-primary">
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
@@ -647,7 +657,7 @@
                 data: {
                     labels: [],
                     datasets: [{
-                        label: 'Bandwidth (GB)',
+                        label: 'Bandwidth',
                         data: [],
                         backgroundColor: 'rgba(139, 92, 246, 0.2)',
                         borderColor: 'rgba(139, 92, 246, 1)',
@@ -693,7 +703,8 @@
                             },
                             callbacks: {
                                 label: function(context) {
-                                    return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + ' GB';
+                                    const unit = document.getElementById('unitSelector').value.toUpperCase();
+                                    return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + ' ' + unit;
                                 }
                             }
                         }
@@ -707,7 +718,8 @@
                                     size: 10
                                 },
                                 callback: function(value) {
-                                    return value.toFixed(1) + ' GB';
+                                    const unit = document.getElementById('unitSelector').value.toUpperCase();
+                                    return value.toFixed(1) + ' ' + unit;
                                 }
                             },
                             grid: {
@@ -798,9 +810,13 @@
                 console.log('Received data:', data);
 
                 if (data.success && bandwidthChart) {
+                    // Get selected unit
+                    const unit = document.getElementById('unitSelector').value;
+                    const values = unit === 'mb' ? data.values_mb : data.values_gb;
+
                     // Update chart
                     bandwidthChart.data.labels = data.labels || [];
-                    bandwidthChart.data.datasets[0].data = data.values || [];
+                    bandwidthChart.data.datasets[0].data = values || [];
                     bandwidthChart.update('none'); // Use 'none' for instant update without animation
 
                     // Hide loading indicator
@@ -830,6 +846,7 @@
         // Event listeners for filters
         const timeRangeFilter = document.getElementById('timeRangeFilter');
         const proxyUserFilter = document.getElementById('proxyUserFilter');
+        const unitSelector = document.getElementById('unitSelector');
         const refreshButton = document.getElementById('refreshChart');
 
         if (timeRangeFilter) {
@@ -837,6 +854,9 @@
         }
         if (proxyUserFilter) {
             proxyUserFilter.addEventListener('change', loadBandwidthData);
+        }
+        if (unitSelector) {
+            unitSelector.addEventListener('change', loadBandwidthData);
         }
         if (refreshButton) {
             refreshButton.addEventListener('click', loadBandwidthData);

@@ -165,7 +165,10 @@
                                         <tr>
                                             <td><strong>#{{ $index + 1 }}</strong></td>
                                             <td>{{ $user->username }}</td>
-                                            <td>{{ $user->total_gb }} GB</td>
+                                            <td>
+                                                {{ $user->total_gb }} GB
+                                                <span class="text-muted small">({{ $user->total_mb }} MB)</span>
+                                            </td>
                                             <td>
                                                 <div class="progress" style="height: 20px; width: 200px;">
                                                     <div class="progress-bar bg-primary"
@@ -457,7 +460,7 @@
                             family: 'Inter'
                         },
                         callback: function(value) {
-                            return value + ' GB';
+                            return value + ' GB (' + (value * 1024).toFixed(0) + ' MB)';
                         }
                     },
                     grid: {

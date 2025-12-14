@@ -116,7 +116,8 @@ class UserDashboardController extends Controller
                 'success' => true,
                 'data' => $bandwidthData,
                 'labels' => array_column($bandwidthData, 'label'),
-                'values' => array_column($bandwidthData, 'gb'),
+                'values_gb' => array_column($bandwidthData, 'gb'),
+                'values_mb' => array_column($bandwidthData, 'mb'),
                 'debug' => [
                     'range' => $range,
                     'usernames_count' => count($selectedUsernames),
