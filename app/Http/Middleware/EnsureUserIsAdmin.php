@@ -22,7 +22,7 @@ class EnsureUserIsAdmin
         }
 
         // Check if user is an administrator
-        if (Auth::user()->is_administrator !== 1) {
+        if (!Auth::user()->is_administrator) {
             // User is not an admin, redirect to user dashboard with error
             return redirect()->route('user.dashboard')
                 ->with('error', 'Unauthorized access. You do not have administrator privileges.');

@@ -21,9 +21,15 @@ return new class extends Migration {
             $table->tinyInteger('enabled')->default(1);
             $table->string('fullname')->default(null)->nullable();
             $table->string('comment')->default(null)->nullable();
+            $table->decimal('bandwidth_limit_gb', 10, 2)->nullable();
             $table->bigInteger('user_id')->unsigned();
             $table->dateTime('created_at');
             $table->dateTime('updated_at')->nullable()->default(null);
+            $table->bigInteger('quota_bytes')->unsigned()->default(0);
+            $table->bigInteger('used_bytes')->unsigned()->default(0);
+            $table->timestamp('last_seen_at')->nullable();
+            $table->tinyInteger('is_blocked')->default(0);
+            $table->timestamp('reset_at')->nullable();
         });
     }
 
