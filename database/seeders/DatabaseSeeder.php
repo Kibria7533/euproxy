@@ -17,6 +17,16 @@ class DatabaseSeeder extends Seeder
             CreateAdministratorSeeder::class,
         ]);
 
+        // Create squid proxy users with realistic data
+        $this->call([
+            SquidUserSeeder::class,
+        ]);
+
+        // Generate 6 months of proxy request logs
+        $this->call([
+            ProxyRequestSeeder::class,
+        ]);
+
         // \App\Models\User::factory(10)->create();
 
         // \App\Models\User::factory()->create([
