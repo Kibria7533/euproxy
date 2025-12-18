@@ -14,6 +14,12 @@ class Kernel extends ConsoleKernel
     {
         // Sync bandwidth usage from proxy_requests to squid_users every 5 minutes
         $schedule->command('bandwidth:sync-usage')->everyFiveMinutes();
+
+        // Check for low bandwidth subscriptions and send alerts every 2 hours
+        $schedule->command('subscriptions:check-low-bandwidth')->everyTwoHours();
+
+        // Check for expired subscriptions and mark them as expired every hour
+        $schedule->command('subscriptions:check-expiry')->hourly();
     }
 
     /**

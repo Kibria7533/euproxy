@@ -223,6 +223,36 @@
                             @endif
                         </div>
 
+                        @if(!Auth::user()->is_administrator && $proxyTypes->count() > 0)
+                        <div class="sidebar-section mb-3">
+                            <div class="sidebar-section-title" style="font-size: 0.75rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; padding: 0 12px; margin-bottom: 8px;">
+                                Proxies
+                            </div>
+                            <ul class="nav flex-column">
+                                <li class="nav-item">
+                                    <a class="sidebar-link" data-bs-toggle="collapse" href="#proxiesCollapse" role="button" aria-expanded="{{ request()->is('user/proxies*') ? 'true' : 'false' }}" aria-controls="proxiesCollapse" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: #64748b; font-weight: 500; transition: all 0.2s;">
+                                        <div style="display: flex; align-items: center;">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 12px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                                            Proxy Services
+                                        </div>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron-icon"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                    </a>
+                                    <div class="collapse {{ request()->is('user/proxies*') ? 'show' : '' }}" id="proxiesCollapse">
+                                        <ul class="nav flex-column ms-4">
+                                            @foreach($proxyTypes as $type)
+                                            <li class="nav-item">
+                                                <a href="{{ route('user.proxies.show', $type->slug) }}" class="sidebar-link {{ request()->is('user/proxies/'.$type->slug.'*') ? 'active' : '' }}" style="display: flex; align-items: center; padding: 8px 12px; border-radius: 8px; text-decoration: none; color: #64748b; font-size: 0.9rem; transition: all 0.2s;">
+                                                    {{ $type->name }}
+                                                </a>
+                                            </li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                        @endif
+
                         <div class="sidebar-section">
                             <div class="sidebar-section-title" style="font-size: 0.75rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; padding: 0 12px; margin-bottom: 8px;">
                                 Management

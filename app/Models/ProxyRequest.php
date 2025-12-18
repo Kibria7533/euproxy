@@ -2,9 +2,12 @@
 
 namespace App\Models;
 
+use App\Observers\ProxyRequestObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+#[ObservedBy([ProxyRequestObserver::class])]
 class ProxyRequest extends Model
 {
     use HasFactory;
@@ -24,5 +27,11 @@ class ProxyRequest extends Model
     public function squidUser()
     {
         return $this->belongsTo(SquidUser::class, 'username', 'user');
+    }
+
+    // Relationship to ProxySubscriptionUsage
+    public function subscriptionUsage()
+    {
+        return $this->hasOne(ProxySubscriptionUsage::class, 'proxy_request_id');
     }
 }

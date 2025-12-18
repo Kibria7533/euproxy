@@ -116,6 +116,23 @@ Route::prefix('user')->group(function () {
             Route::post('create', [SquidAllowedIpController::class, 'create'])->name('user.ip.create');
             Route::post('destroy/{id}', [SquidAllowedIpController::class, 'destroy'])->name('user.ip.destroy');
         });
+
+        // Proxy Services - Browse and purchase plans
+        Route::prefix('proxies')->group(function () {
+            Route::get('/{slug}', [\App\Http\Controllers\User\UserProxyController::class, 'show'])->name('user.proxies.show');
+            Route::get('/{slug}/buy', [\App\Http\Controllers\User\UserProxyController::class, 'buyPlans'])->name('user.proxies.buy');
+            Route::get('/{slug}/configuration', [\App\Http\Controllers\User\UserProxyController::class, 'configuration'])->name('user.proxies.configuration');
+            Route::get('/{slug}/subscriptions', [\App\Http\Controllers\User\UserProxyController::class, 'subscriptions'])->name('user.proxies.subscriptions');
+            Route::get('/{slug}/documentation', [\App\Http\Controllers\User\UserProxyController::class, 'documentation'])->name('user.proxies.documentation');
+        });
+
+        // Checkout & Payment
+        Route::prefix('checkout')->group(function () {
+            Route::get('/review/{planId}', [\App\Http\Controllers\User\UserCheckoutController::class, 'review'])->name('user.checkout.review');
+            Route::post('/process', [\App\Http\Controllers\User\UserCheckoutController::class, 'process'])->name('user.checkout.process');
+            Route::get('/success', [\App\Http\Controllers\User\UserCheckoutController::class, 'success'])->name('user.checkout.success');
+            Route::get('/cancel/{order?}', [\App\Http\Controllers\User\UserCheckoutController::class, 'cancel'])->name('user.checkout.cancel');
+        });
     });
 });
 
