@@ -19,6 +19,7 @@ class SquidUser extends Model
         'bandwidth_limit_gb',
         'quota_bytes',
         'used_bytes',
+        'proxy_subscription_id',
     ];
 
     protected $casts = [
@@ -40,6 +41,11 @@ class SquidUser extends Model
     public function proxyRequests()
     {
         return $this->hasMany(ProxyRequest::class, 'username', 'user');
+    }
+
+    public function subscription()
+    {
+        return $this->belongsTo(ProxySubscription::class, 'proxy_subscription_id');
     }
 
     // Accessor: Returns total bandwidth used in GB

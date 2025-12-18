@@ -45,16 +45,20 @@ class UserDashboardController extends Controller
         // Calculate bandwidth data for each SquidUser (only user's own) with individual 7-day data
         $squidUsersWithBandwidth = $userSquidUsers->map(function ($squidUser) {
             $last7Days = $this->bandwidthService->getLast7DaysBandwidth($squidUser->user);
+            $usedBytes = (int) $squidUser->used_bytes;
+            $quotaBytes = (int) $squidUser->quota_bytes;
             return [
                 'username' => $squidUser->user,
-                'total_bandwidth_gb' => $squidUser->total_bandwidth_used,
+                'total_bandwidth_gb' => round($usedBytes / 1024 / 1024 / 1024, 3),
                 'bandwidth_limit_gb' => $squidUser->bandwidth_limit_gb,
-                'usage_percentage' => $squidUser->bandwidth_usage_percentage,
-                'is_over_limit' => $squidUser->isOverBandwidthLimit(),
+                'usage_percentage' => $quotaBytes > 0
+                   ? round(($usedBytes / $quotaBytes) * 100, 2)
+                   : 0,
+
+              'is_over_limit' => $quotaBytes > 0 && $usedBytes >= $quotaBytes,
                 'last_7_days' => $last7Days,
             ];
         });
-
         // Get 7-day aggregated data (only user's proxy users)
         $usernames = $userSquidUsers->pluck('user')->toArray();
         $last7DaysData = $this->bandwidthService->getLast7DaysBandwidthForMultipleUsers($usernames);

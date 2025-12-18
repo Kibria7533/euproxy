@@ -59,6 +59,26 @@ Route::prefix('admin')->group(function () {
             Route::post('modify/{id}', [SquidUserController::class, 'modify'])->name('squiduser.modify');
             Route::post('destroy/{id}', [SquidUserController::class, 'destroy'])->name('squiduser.destroy');
         });
+
+        // Proxy Types Management
+        Route::prefix('proxy-types')->group(function () {
+            Route::get('search', [\App\Http\Controllers\Admin\ProxyTypeController::class, 'search'])->name('admin.proxy-types.search');
+            Route::get('creator', [\App\Http\Controllers\Admin\ProxyTypeController::class, 'creator'])->name('admin.proxy-types.creator');
+            Route::get('editor/{id}', [\App\Http\Controllers\Admin\ProxyTypeController::class, 'editor'])->name('admin.proxy-types.editor');
+            Route::post('create', [\App\Http\Controllers\Admin\ProxyTypeController::class, 'create'])->name('admin.proxy-types.create');
+            Route::post('modify/{id}', [\App\Http\Controllers\Admin\ProxyTypeController::class, 'modify'])->name('admin.proxy-types.modify');
+            Route::post('destroy/{id}', [\App\Http\Controllers\Admin\ProxyTypeController::class, 'destroy'])->name('admin.proxy-types.destroy');
+        });
+
+        // Proxy Plans Management
+        Route::prefix('proxy-plans')->group(function () {
+            Route::get('search', [\App\Http\Controllers\Admin\ProxyPlanController::class, 'search'])->name('admin.proxy-plans.search');
+            Route::get('creator', [\App\Http\Controllers\Admin\ProxyPlanController::class, 'creator'])->name('admin.proxy-plans.creator');
+            Route::get('editor/{id}', [\App\Http\Controllers\Admin\ProxyPlanController::class, 'editor'])->name('admin.proxy-plans.editor');
+            Route::post('create', [\App\Http\Controllers\Admin\ProxyPlanController::class, 'create'])->name('admin.proxy-plans.create');
+            Route::post('modify/{id}', [\App\Http\Controllers\Admin\ProxyPlanController::class, 'modify'])->name('admin.proxy-plans.modify');
+            Route::post('destroy/{id}', [\App\Http\Controllers\Admin\ProxyPlanController::class, 'destroy'])->name('admin.proxy-plans.destroy');
+        });
     });
 });
 
@@ -110,4 +130,9 @@ Route::get('/home', function () {
     return redirect()->route('admin.dashboard');
 })->name('home');
 
+// Payment Gateway Webhooks (CSRF excluded in middleware)
+Route::prefix('webhooks')->group(function () {
+    Route::post('/stripe', [\App\Http\Controllers\Webhooks\StripeWebhookController::class, 'handle'])->name('webhooks.stripe');
+    Route::post('/paypal', [\App\Http\Controllers\Webhooks\PayPalWebhookController::class, 'handle'])->name('webhooks.paypal');
+});
 
