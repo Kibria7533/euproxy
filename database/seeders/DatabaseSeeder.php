@@ -17,6 +17,11 @@ class DatabaseSeeder extends Seeder
             CreateAdministratorSeeder::class,
         ]);
 
+        // Create proxy types and plans
+        $this->call([
+            ProxyTypesAndPlansSeeder::class,
+        ]);
+
         // Create squid proxy users with realistic data
         $this->call([
             SquidUserSeeder::class,

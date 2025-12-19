@@ -253,6 +253,28 @@
                         </div>
                         @endif
 
+                        @if(Auth::user()->is_administrator)
+                        <div class="sidebar-section mb-3">
+                            <div class="sidebar-section-title" style="font-size: 0.75rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; padding: 0 12px; margin-bottom: 8px;">
+                                Configuration
+                            </div>
+                            <ul class="nav flex-column">
+                                <li class="nav-item">
+                                    <a class="sidebar-link {{ request()->routeIs('admin.proxy-types.*') ? 'active' : '' }}" href="{{ route('admin.proxy-types.search') }}" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: #64748b; font-weight: 500; transition: all 0.2s;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 12px;"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>
+                                        Proxy Types
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="sidebar-link {{ request()->routeIs('admin.proxy-plans.*') ? 'active' : '' }}" href="{{ route('admin.proxy-plans.search') }}" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: #64748b; font-weight: 500; transition: all 0.2s;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 12px;"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                                        Proxy Plans
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                        @endif
+
                         <div class="sidebar-section">
                             <div class="sidebar-section-title" style="font-size: 0.75rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; padding: 0 12px; margin-bottom: 8px;">
                                 Management
