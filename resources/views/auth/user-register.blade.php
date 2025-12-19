@@ -471,7 +471,7 @@
     <!-- Header -->
     <header class="header">
         <div class="header-content">
-            <h1 class="header-logo">euproxy</h1>
+            <a href="{{ route('landing') }}" class="header-logo" style="text-decoration: none;">euproxy</a>
             <ul class="header-links">
                 <li><a href="{{ route('user.login') }}">Login</a></li>
                 <li><a href="{{ route('user.register') }}">Register</a></li>

@@ -16,9 +16,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return redirect()->route('user.login');
-});
+Route::get('/', [\App\Http\Controllers\LandingController::class, 'index'])->name('landing');
 
 // Admin routes (existing backend login/dashboard)
 Route::prefix('admin')->group(function () {
@@ -138,8 +136,12 @@ Route::prefix('user')->group(function () {
 
 // Legacy routes for backwards compatibility
 Route::get('/login', function () {
-    return redirect()->route('admin.login');
+    return redirect()->route('user.login');
 })->name('login');
+
+Route::get('/register', function () {
+    return redirect()->route('user.register');
+})->name('register');
 
 Route::post('/logout', [\App\Http\Controllers\Auth\AdminLoginController::class, 'logout'])->name('logout');
 
