@@ -223,7 +223,7 @@
                             @endif
                         </div>
 
-                        @if(!Auth::user()->is_administrator && $proxyTypes->count() > 0)
+                        @if(!Auth::user()->is_administrator && $availableProxyTypes->count() > 0)
                         <div class="sidebar-section mb-3">
                             <div class="sidebar-section-title" style="font-size: 0.75rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; padding: 0 12px; margin-bottom: 8px;">
                                 Proxies
@@ -239,7 +239,7 @@
                                     </a>
                                     <div class="collapse {{ request()->is('user/proxies*') ? 'show' : '' }}" id="proxiesCollapse">
                                         <ul class="nav flex-column ms-4">
-                                            @foreach($proxyTypes as $type)
+                                            @foreach($availableProxyTypes as $type)
                                             <li class="nav-item">
                                                 <a href="{{ route('user.proxies.show', $type->slug) }}" class="sidebar-link {{ request()->is('user/proxies/'.$type->slug.'*') ? 'active' : '' }}" style="display: flex; align-items: center; padding: 8px 12px; border-radius: 8px; text-decoration: none; color: #64748b; font-size: 0.9rem; transition: all 0.2s;">
                                                     {{ $type->name }}

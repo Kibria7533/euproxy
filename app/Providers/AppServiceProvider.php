@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\ProxyType;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -25,13 +26,16 @@ class AppServiceProvider extends ServiceProvider
     {
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
 
-        // Share active proxy types with all views
+        // Use Bootstrap 5 for pagination
+        Paginator::useBootstrapFive();
+
+        // Share active proxy types with all views (for navigation)
         View::composer('*', function ($view) {
-            $proxyTypes = ProxyType::active()
+            $availableProxyTypes = ProxyType::active()
                 ->orderBy('sort_order')
                 ->get();
 
-            $view->with('proxyTypes', $proxyTypes);
+            $view->with('availableProxyTypes', $availableProxyTypes);
         });
     }
 }
