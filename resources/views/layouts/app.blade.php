@@ -120,6 +120,7 @@
         }
     </style>
 
+    @stack('styles')
 </head>
 <body>
     <div id="app">
@@ -348,5 +349,6 @@
             toastr.error('{{ $error }}');
         @endforeach
     </script>
+    @stack('scripts')
 </body>
 </html>
