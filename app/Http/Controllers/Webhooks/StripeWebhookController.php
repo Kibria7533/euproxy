@@ -61,12 +61,13 @@ class StripeWebhookController extends Controller
             $orderId = $webhookData['order_id'];
             if (!$orderId) {
                 Log::warning('Stripe webhook missing order_id', [
+                    'event_type' => $webhookData['event_type'],
                     'event_id' => $webhookData['event_id'],
                 ]);
                 return response()->json(['error' => 'Missing order_id'], 400);
             }
 
-            $order = ProxyOrder::find($orderId);
+            $order = ProxyOrder::with(['plan', 'proxyType'])->find($orderId);
             if (!$order) {
                 Log::error('Order not found for Stripe webhook', [
                     'order_id' => $orderId,

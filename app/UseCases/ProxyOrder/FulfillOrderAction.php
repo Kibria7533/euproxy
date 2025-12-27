@@ -27,7 +27,7 @@ class FulfillOrderAction
         }
 
         return DB::transaction(function () use ($order, $autoCreateSquidUser) {
-            $plan = $order->proxyPlan;
+            $plan = $order->plan;
 
             // Calculate expiry date if validity_days is set
             $expiresAt = $plan->validity_days

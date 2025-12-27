@@ -152,6 +152,5 @@ Route::get('/home', function () {
 // Payment Gateway Webhooks (CSRF excluded in middleware)
 Route::prefix('webhooks')->group(function () {
     Route::post('/stripe', [\App\Http\Controllers\Webhooks\StripeWebhookController::class, 'handle'])->name('webhooks.stripe');
-    Route::post('/paypal', [\App\Http\Controllers\Webhooks\PayPalWebhookController::class, 'handle'])->name('webhooks.paypal');
 });
 

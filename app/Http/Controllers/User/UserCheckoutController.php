@@ -7,7 +7,6 @@ use App\Models\ProxyPlan;
 use App\Models\ProxyOrder;
 use App\Services\Payment\PaymentGatewayInterface;
 use App\Services\Payment\StripePaymentGateway;
-use App\Services\Payment\PayPalPaymentGateway;
 use App\UseCases\ProxyOrder\CreateOrderAction;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -49,7 +48,7 @@ class UserCheckoutController extends Controller
     {
         $validated = $request->validate([
             'plan_id' => 'required|exists:proxy_plans,id',
-            'payment_method' => 'required|in:stripe,paypal',
+            'payment_method' => 'required|in:stripe',
             'terms_accepted' => 'accepted',
         ]);
 
@@ -61,6 +60,9 @@ class UserCheckoutController extends Controller
             $plan,
             ['payment_method' => $validated['payment_method']]
         );
+
+        // Load relationships needed for payment gateway
+        $order->load(['plan', 'proxyType']);
 
         // Get appropriate payment gateway
         $gateway = $this->getPaymentGateway($validated['payment_method']);
@@ -152,10 +154,6 @@ class UserCheckoutController extends Controller
      */
     protected function getPaymentGateway(string $method): PaymentGatewayInterface
     {
-        return match ($method) {
-            'stripe' => app(StripePaymentGateway::class),
-            'paypal' => app(PayPalPaymentGateway::class),
-            default => app(StripePaymentGateway::class),
-        };
+        return app(StripePaymentGateway::class);
     }
 }

@@ -8,7 +8,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | This option controls the default payment gateway that will be used
-    | for processing payments. You can change this to 'paypal' if needed.
+    | for processing payments.
     |
     */
 
@@ -28,22 +28,6 @@ return [
         'secret_key' => env('STRIPE_SECRET_KEY', ''),
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET', ''),
         'test_mode' => env('STRIPE_TEST_MODE', true),
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | PayPal Configuration
-    |--------------------------------------------------------------------------
-    |
-    | Configuration for PayPal payment gateway integration.
-    |
-    */
-
-    'paypal' => [
-        'client_id' => env('PAYPAL_CLIENT_ID', ''),
-        'client_secret' => env('PAYPAL_CLIENT_SECRET', ''),
-        'webhook_id' => env('PAYPAL_WEBHOOK_ID', ''),
-        'test_mode' => env('PAYPAL_TEST_MODE', true),
     ],
 
     /*

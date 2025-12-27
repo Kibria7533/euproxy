@@ -34,13 +34,20 @@ class StripePaymentGateway extends AbstractPaymentGateway
             $successUrl = $options['success_url'] ?? route('user.checkout.success', ['order' => $order->id]);
             $cancelUrl = $options['cancel_url'] ?? route('user.checkout.cancel', ['order' => $order->id]);
 
+            $metadata = [
+                'order_id' => $order->id,
+                'invoice_number' => $order->invoice_number,
+                'user_id' => $order->user_id,
+                'proxy_plan_id' => $order->proxy_plan_id,
+            ];
+
             $session = Session::create([
                 'payment_method_types' => ['card'],
                 'line_items' => [[
                     'price_data' => [
                         'currency' => 'usd',
                         'product_data' => [
-                            'name' => $order->proxyPlan->name,
+                            'name' => $order->plan->name,
                             'description' => "{$order->bandwidth_gb} GB - {$order->proxyType->name}",
                         ],
                         'unit_amount' => $this->formatAmount($order->amount_paid),
@@ -51,11 +58,9 @@ class StripePaymentGateway extends AbstractPaymentGateway
                 'success_url' => $successUrl . '?session_id={CHECKOUT_SESSION_ID}',
                 'cancel_url' => $cancelUrl,
                 'client_reference_id' => $order->id,
-                'metadata' => [
-                    'order_id' => $order->id,
-                    'invoice_number' => $order->invoice_number,
-                    'user_id' => $order->user_id,
-                    'proxy_plan_id' => $order->proxy_plan_id,
+                'metadata' => $metadata,
+                'payment_intent_data' => [
+                    'metadata' => $metadata,
                 ],
             ]);
 
@@ -185,10 +190,25 @@ class StripePaymentGateway extends AbstractPaymentGateway
 
         // Extract order ID from metadata
         $orderId = $data['metadata']['order_id'] ?? null;
+
+        // For charge events, metadata is directly on the charge object
+        // For payment_intent events, metadata is on the payment_intent
+        // For checkout.session events, metadata is on the session
+
         $transactionId = $data['payment_intent'] ?? $data['id'] ?? null;
 
         // Map Stripe status to our internal status
         $status = $this->mapStripeStatus($eventType, $data);
+
+        // Determine amount based on event type
+        $amount = 0;
+        if (isset($data['amount_total'])) {
+            // Checkout session
+            $amount = $this->parseAmount($data['amount_total']);
+        } elseif (isset($data['amount'])) {
+            // Payment intent or charge
+            $amount = $this->parseAmount($data['amount']);
+        }
 
         return [
             'event_type' => $eventType,
@@ -196,7 +216,7 @@ class StripePaymentGateway extends AbstractPaymentGateway
             'transaction_id' => $transactionId,
             'order_id' => $orderId,
             'status' => $status,
-            'amount' => isset($data['amount_total']) ? $this->parseAmount($data['amount_total']) : 0,
+            'amount' => $amount,
             'metadata' => $data['metadata'] ?? [],
             'raw_data' => $data,
         ];

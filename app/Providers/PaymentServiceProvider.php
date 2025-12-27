@@ -4,7 +4,6 @@ namespace App\Providers;
 
 use App\Services\Payment\PaymentGatewayInterface;
 use App\Services\Payment\StripePaymentGateway;
-use App\Services\Payment\PayPalPaymentGateway;
 use Illuminate\Support\ServiceProvider;
 
 class PaymentServiceProvider extends ServiceProvider
@@ -14,24 +13,14 @@ class PaymentServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Register payment gateways as singletons
+        // Register Stripe payment gateway as singleton
         $this->app->singleton(StripePaymentGateway::class, function ($app) {
             return new StripePaymentGateway();
         });
 
-        $this->app->singleton(PayPalPaymentGateway::class, function ($app) {
-            return new PayPalPaymentGateway();
-        });
-
-        // Bind the default gateway based on config
+        // Bind the payment gateway interface to Stripe
         $this->app->bind(PaymentGatewayInterface::class, function ($app) {
-            $defaultGateway = config('payment.default_gateway', 'stripe');
-
-            return match ($defaultGateway) {
-                'stripe' => $app->make(StripePaymentGateway::class),
-                'paypal' => $app->make(PayPalPaymentGateway::class),
-                default => $app->make(StripePaymentGateway::class),
-            };
+            return $app->make(StripePaymentGateway::class);
         });
     }
 
@@ -51,7 +40,6 @@ class PaymentServiceProvider extends ServiceProvider
         return [
             PaymentGatewayInterface::class,
             StripePaymentGateway::class,
-            PayPalPaymentGateway::class,
         ];
     }
 }
