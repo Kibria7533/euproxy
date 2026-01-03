@@ -6,7 +6,7 @@
                     <!-- Header -->
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <div>
-                            <h5 class="fw-bold mb-1" style="color: #1e293b;">{{ $subscription->order->proxyPlan->name }}</h5>
+                            <h5 class="fw-bold mb-1" style="color: #1e293b;">{{ $subscription->order->plan->name }}</h5>
                             <small class="text-muted">Order #{{ $subscription->order->invoice_number }}</small>
                         </div>
                         <div>

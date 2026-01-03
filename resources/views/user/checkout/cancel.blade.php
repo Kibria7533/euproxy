@@ -20,7 +20,7 @@
                     <h6 class="fw-semibold mb-3" style="color: #475569;">Order Details</h6>
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span class="text-muted">Plan:</span>
-                        <span class="fw-semibold">{{ $order->proxyPlan->name }}</span>
+                        <span class="fw-semibold">{{ $order->plan->name }}</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span class="text-muted">Bandwidth:</span>
