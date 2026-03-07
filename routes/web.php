@@ -68,6 +68,16 @@ Route::prefix('admin')->group(function () {
             Route::post('destroy/{id}', [\App\Http\Controllers\Admin\ProxyTypeController::class, 'destroy'])->name('admin.proxy-types.destroy');
         });
 
+        // Proxy Servers Management
+        Route::prefix('squid-servers')->group(function () {
+            Route::get('search', [\App\Http\Controllers\Admin\SquidServerController::class, 'search'])->name('admin.squid-servers.search');
+            Route::get('creator', [\App\Http\Controllers\Admin\SquidServerController::class, 'creator'])->name('admin.squid-servers.creator');
+            Route::get('editor/{id}', [\App\Http\Controllers\Admin\SquidServerController::class, 'editor'])->name('admin.squid-servers.editor');
+            Route::post('create', [\App\Http\Controllers\Admin\SquidServerController::class, 'create'])->name('admin.squid-servers.create');
+            Route::post('modify/{id}', [\App\Http\Controllers\Admin\SquidServerController::class, 'modify'])->name('admin.squid-servers.modify');
+            Route::post('destroy/{id}', [\App\Http\Controllers\Admin\SquidServerController::class, 'destroy'])->name('admin.squid-servers.destroy');
+        });
+
         // Proxy Plans Management
         Route::prefix('proxy-plans')->group(function () {
             Route::get('search', [\App\Http\Controllers\Admin\ProxyPlanController::class, 'search'])->name('admin.proxy-plans.search');

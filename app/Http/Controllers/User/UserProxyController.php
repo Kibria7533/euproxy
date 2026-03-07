@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\ProxyType;
 use App\Models\ProxySubscription;
+use App\Models\SquidServer;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -43,11 +44,17 @@ class UserProxyController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        $proxyServers = SquidServer::active()
+            ->where('proxy_type_id', $proxyType->id)
+            ->orderBy('location')
+            ->get();
+
         return view('user.proxies.show', [
-            'proxyType' => $proxyType,
-            'plans' => $plans,
+            'proxyType'    => $proxyType,
+            'plans'        => $plans,
             'subscriptions' => $subscriptions,
-            'activeTab' => $tab,
+            'activeTab'    => $tab,
+            'proxyServers' => $proxyServers,
         ]);
     }
 

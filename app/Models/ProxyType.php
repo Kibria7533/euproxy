@@ -55,6 +55,11 @@ class ProxyType extends Model
         return $this->hasMany(ProxySubscription::class);
     }
 
+    public function servers()
+    {
+        return $this->hasMany(SquidServer::class)->where('is_active', true)->orderBy('location');
+    }
+
     /**
      * Scope to get only active proxy types
      */
