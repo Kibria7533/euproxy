@@ -53,4 +53,17 @@ return [
 
     'tax_rate' => env('PAYMENT_TAX_RATE', 0),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Payment Bypass (Development Only)
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, payments will automatically succeed without contacting
+    | the payment gateway. This is useful for development and testing.
+    | WARNING: NEVER enable this in production!
+    |
+    */
+
+    'bypass_enabled' => env('PAYMENT_BYPASS_ENABLED', false),
+
 ];
