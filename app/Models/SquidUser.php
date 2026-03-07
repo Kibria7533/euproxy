@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Scopes\SquidUserScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Crypt;
 
 class SquidUser extends Model
 {
@@ -13,6 +14,7 @@ class SquidUser extends Model
     protected $fillable = [
         'user',
         'password',
+        'encrypted_password',
         'enabled',
         'fullname',
         'comment',
@@ -23,7 +25,7 @@ class SquidUser extends Model
     ];
 
     protected $casts = [
-        'bandwidth_limit_gb' => 'decimal:2',
+        'bandwidth_limit_gb' => 'decimal:3',
         'quota_bytes' => 'integer',
         'used_bytes' => 'integer',
     ];
@@ -84,6 +86,27 @@ class SquidUser extends Model
             $this->attributes['quota_bytes'] = (int) ($value * 1073741824);
         } else {
             $this->attributes['quota_bytes'] = 0;
+        }
+    }
+
+    // Mutator: Hash password with MD5 for Squid MySQL auth compatibility
+    // and store encrypted copy for display
+    public function setPasswordAttribute($value)
+    {
+        $this->attributes['password'] = md5($value);
+        $this->attributes['encrypted_password'] = Crypt::encryptString($value);
+    }
+
+    // Accessor: Decrypt password for display
+    public function getDecryptedPasswordAttribute(): string
+    {
+        if (empty($this->attributes['encrypted_password'])) {
+            return '';
+        }
+        try {
+            return Crypt::decryptString($this->attributes['encrypted_password']);
+        } catch (\Exception $e) {
+            return '';
         }
     }
 

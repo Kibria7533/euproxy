@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
@@ -28,7 +29,7 @@ class SquidUserSeeder extends Seeder
         $squidUsers = [
             [
                 'user' => 'user001',
-                'password' => Hash::make('password001'),
+                'password' => md5('password001'), 'encrypted_password' => Crypt::encryptString('password001'),
                 'enabled' => 1,
                 'fullname' => 'John Doe',
                 'comment' => 'Regular user with 50GB quota',
@@ -40,7 +41,7 @@ class SquidUserSeeder extends Seeder
             ],
             [
                 'user' => 'user002',
-                'password' => Hash::make('password002'),
+                'password' => md5('password002'), 'encrypted_password' => Crypt::encryptString('password002'),
                 'enabled' => 1,
                 'fullname' => 'Jane Smith',
                 'comment' => 'Power user with 100GB quota',
@@ -52,7 +53,7 @@ class SquidUserSeeder extends Seeder
             ],
             [
                 'user' => 'user003',
-                'password' => Hash::make('password003'),
+                'password' => md5('password003'), 'encrypted_password' => Crypt::encryptString('password003'),
                 'enabled' => 1,
                 'fullname' => 'Bob Johnson',
                 'comment' => 'Exceeded quota - auto blocked',
@@ -64,7 +65,7 @@ class SquidUserSeeder extends Seeder
             ],
             [
                 'user' => 'user004',
-                'password' => Hash::make('password004'),
+                'password' => md5('password004'), 'encrypted_password' => Crypt::encryptString('password004'),
                 'enabled' => 1,
                 'fullname' => 'Alice Williams',
                 'comment' => 'Light user with small quota',
@@ -76,7 +77,7 @@ class SquidUserSeeder extends Seeder
             ],
             [
                 'user' => 'user005',
-                'password' => Hash::make('password005'),
+                'password' => md5('password005'), 'encrypted_password' => Crypt::encryptString('password005'),
                 'enabled' => 1,
                 'fullname' => 'Charlie Brown',
                 'comment' => 'Unlimited bandwidth user',
@@ -88,7 +89,7 @@ class SquidUserSeeder extends Seeder
             ],
             [
                 'user' => 'user006',
-                'password' => Hash::make('password006'),
+                'password' => md5('password006'), 'encrypted_password' => Crypt::encryptString('password006'),
                 'enabled' => 0, // Disabled user
                 'fullname' => 'David Miller',
                 'comment' => 'Disabled account',
@@ -100,7 +101,7 @@ class SquidUserSeeder extends Seeder
             ],
             [
                 'user' => 'user007',
-                'password' => Hash::make('password007'),
+                'password' => md5('password007'), 'encrypted_password' => Crypt::encryptString('password007'),
                 'enabled' => 1,
                 'fullname' => 'Emma Davis',
                 'comment' => 'New user with minimal usage',
@@ -112,7 +113,7 @@ class SquidUserSeeder extends Seeder
             ],
             [
                 'user' => 'user008',
-                'password' => Hash::make('password008'),
+                'password' => md5('password008'), 'encrypted_password' => Crypt::encryptString('password008'),
                 'enabled' => 1,
                 'fullname' => 'Frank Wilson',
                 'comment' => 'Heavy user approaching limit',
@@ -124,7 +125,7 @@ class SquidUserSeeder extends Seeder
             ],
             [
                 'user' => 'user009',
-                'password' => Hash::make('password009'),
+                'password' => md5('password009'), 'encrypted_password' => Crypt::encryptString('password009'),
                 'enabled' => 1,
                 'fullname' => 'Grace Taylor',
                 'comment' => 'Medium quota, moderate usage',
@@ -136,7 +137,7 @@ class SquidUserSeeder extends Seeder
             ],
             [
                 'user' => 'user010',
-                'password' => Hash::make('password010'),
+                'password' => md5('password010'), 'encrypted_password' => Crypt::encryptString('password010'),
                 'enabled' => 1,
                 'fullname' => 'Henry Martinez',
                 'comment' => 'Business user with large quota',

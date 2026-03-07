@@ -62,7 +62,7 @@ class UserCheckoutController extends Controller
         );
 
         // Load relationships needed for payment gateway
-        $order->load(['plan', 'proxyType']);
+        $order->load(['proxyPlan', 'proxyType']);
 
         // Get appropriate payment gateway
         $gateway = $this->getPaymentGateway($validated['payment_method']);

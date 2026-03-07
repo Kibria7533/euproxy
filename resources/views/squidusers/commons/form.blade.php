@@ -4,7 +4,14 @@
 </div>
 <div class="mb-3">
     <label for="password" class="form-label">Password</label>
-    <input type="password" class="form-control" id="password" name="password" value="{{ old('password',$password ?? '') }}">
+    <div class="input-group">
+        <input type="password" class="form-control" id="password" name="password" value="{{ old('password',$password ?? '') }}">
+        <button type="button" class="btn btn-outline-secondary" onclick="
+            var el = document.getElementById('password');
+            el.type = el.type === 'password' ? 'text' : 'password';
+            this.textContent = el.type === 'password' ? '👁' : '🙈';
+        ">👁</button>
+    </div>
 </div>
 <div class="mb-3">
     <label for="fullname" class="form-label">FullName</label>
@@ -19,7 +26,7 @@
         Bandwidth Limit (GB)
         <small class="text-muted">Leave empty for unlimited</small>
     </label>
-    <input type="number" class="form-control" id="bandwidth_limit_gb" name="bandwidth_limit_gb" step="0.01" min="0" value="{{ old('bandwidth_limit_gb', $bandwidth_limit_gb ?? '') }}" placeholder="e.g., 100">
+    <input type="number" class="form-control" id="bandwidth_limit_gb" name="bandwidth_limit_gb" step="0.001" min="0" value="{{ old('bandwidth_limit_gb', $bandwidth_limit_gb ?? '') }}" placeholder="e.g., 100">
     @error('bandwidth_limit_gb')
         <div class="text-danger small mt-1">{{ $message }}</div>
     @enderror

@@ -44,7 +44,7 @@ class ProxyOrder extends Model
     /**
      * Get the plan associated with this order
      */
-    public function plan()
+    public function proxyPlan()
     {
         return $this->belongsTo(ProxyPlan::class, 'proxy_plan_id');
     }

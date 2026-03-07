@@ -47,7 +47,7 @@ class StripePaymentGateway extends AbstractPaymentGateway
                     'price_data' => [
                         'currency' => 'usd',
                         'product_data' => [
-                            'name' => $order->plan->name,
+                            'name' => $order->proxyPlan->name,
                             'description' => "{$order->bandwidth_gb} GB - {$order->proxyType->name}",
                         ],
                         'unit_amount' => $this->formatAmount($order->amount_paid),

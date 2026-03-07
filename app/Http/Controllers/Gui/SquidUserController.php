@@ -45,7 +45,7 @@ class SquidUserController extends Controller
         return view('squidusers.editor', [
             'id'=>$squidUser->id,
             'user'=>$squidUser->user,
-            'password'=>$squidUser->password,
+            'password'=>$squidUser->decrypted_password,
             'fullname'=>$squidUser->fullname,
             'comment'=>$squidUser->comment,
             'enabled'=>$squidUser->enabled,
