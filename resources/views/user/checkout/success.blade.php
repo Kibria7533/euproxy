@@ -43,7 +43,7 @@
                             <h6 class="fw-semibold mb-3" style="color: #475569;">Plan Details</h6>
                             <div class="d-flex justify-content-between align-items-start mb-3">
                                 <div>
-                                    <div class="fw-semibold mb-1" style="color: #1e293b;">{{ $order->plan->name }}</div>
+                                    <div class="fw-semibold mb-1" style="color: #1e293b;">{{ $order->proxyPlan->name }}</div>
                                     <small class="text-muted">{{ $order->proxyType->name }}</small>
                                 </div>
                                 <div class="text-end">

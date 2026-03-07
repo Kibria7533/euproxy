@@ -135,9 +135,21 @@ class ProxyTypesAndPlansSeeder extends Seeder
                 'sort_order' => 2,
             ],
             [
-                'feature_key' => 'sub_accounts',
-                'feature_value' => 'yes',
-                'display_label' => 'Sub-accounts',
+                'feature_key' => 'max_sub_accounts',
+                'feature_value' => (string) match(true) {
+                    $plan->bandwidth_gb >= 50 => 10,
+                    $plan->bandwidth_gb >= 20 => 5,
+                    $plan->bandwidth_gb >= 5  => 3,
+                    $plan->bandwidth_gb >= 2  => 2,
+                    default                   => 1,
+                },
+                'display_label' => match(true) {
+                    $plan->bandwidth_gb >= 50 => '10 Sub-accounts',
+                    $plan->bandwidth_gb >= 20 => '5 Sub-accounts',
+                    $plan->bandwidth_gb >= 5  => '3 Sub-accounts',
+                    $plan->bandwidth_gb >= 2  => '2 Sub-accounts',
+                    default                   => '1 Sub-account',
+                },
                 'sort_order' => 3,
             ],
             [
