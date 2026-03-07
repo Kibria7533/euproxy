@@ -120,7 +120,7 @@ class UserCheckoutController extends Controller
             ->when($orderId && !$sessionId, function ($query) use ($orderId) {
                 $query->where('id', $orderId);
             })
-            ->with(['plan', 'proxyType', 'subscription'])
+            ->with(['proxyPlan', 'proxyType', 'subscription'])
             ->first();
 
         if (!$order || $order->user_id !== auth()->id()) {
@@ -149,7 +149,7 @@ class UserCheckoutController extends Controller
         if ($orderId) {
             $order = ProxyOrder::where('id', $orderId)
                 ->where('user_id', auth()->id())
-                ->with(['plan', 'proxyType'])
+                ->with(['proxyPlan', 'proxyType'])
                 ->first();
         }
 
