@@ -25,6 +25,13 @@ Client (192.168.88.x)
         │
         ▼
 ┌──────────────────────────────┐
+│  bandwidth-ingestor.service  │
+│  tail -F bandwidth.log       │──► proxy_requests (INSERT)
+│  real-time log parsing       │──► squid_users.used_bytes += N
+└──────────────────────────────┘
+        │
+        ▼
+┌──────────────────────────────┐
 │  quota_enforcer_tshark.py    │
 │  (systemd service)           │
 │  tshark packet sniffing      │──► kill connection (iptables + conntrack)
@@ -733,6 +740,226 @@ chmod +x /usr/local/bin/quota_enforcer_tshark.py
 
 ## 6. Systemd Services
 
+### bandwidth-ingestor.service
+
+This is the **critical link** between Squid and the database. It tails `/var/log/squid/bandwidth.log` in real-time, parses every line, inserts it into `proxy_requests`, and increments `squid_users.used_bytes` — which is what the quota enforcer and quota helper both read.
+
+**Script path:** `/root/bandwidth-log-process/ingestor.py`
+
+```bash
+mkdir -p /root/bandwidth-log-process
+cd /root/bandwidth-log-process
+python3 -m venv venv
+venv/bin/pip install pymysql
+```
+
+**File:** `/root/bandwidth-log-process/ingestor.py`
+
+```python
+#!/usr/bin/env python3
+import os
+import sys
+import time
+import signal
+import logging
+import subprocess
+from logging.handlers import RotatingFileHandler
+
+import pymysql
+
+LOG_PATH = "/var/log/squid/bandwidth-ingestor.log"
+SQUID_LOG = "/var/log/squid/bandwidth.log"
+
+DB = {
+    "host": "127.0.0.1",
+    "user": "squid",
+    "password": "YOUR_DB_PASSWORD",
+    "database": "squid",
+    "autocommit": True,
+    "charset": "utf8mb4",
+    "cursorclass": pymysql.cursors.Cursor,
+}
+
+ALLOWED_METHODS = {"GET", "POST", "CONNECT", "PUT", "DELETE", "HEAD", "OPTIONS", "PATCH", "TRACE"}
+NO_USER_VALUES = {"-", "", "unknown", "UNKNOWN", None}
+STATS_EVERY_SEC = 30
+DB_RECONNECT_SLEEP = 2
+
+logger = logging.getLogger("bandwidth_ingestor")
+logger.setLevel(logging.INFO)
+fmt = logging.Formatter(fmt="%(asctime)s %(levelname)s %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+sh = logging.StreamHandler(sys.stdout)
+sh.setFormatter(fmt)
+logger.addHandler(sh)
+try:
+    fh = RotatingFileHandler(LOG_PATH, maxBytes=20 * 1024 * 1024, backupCount=5)
+    fh.setFormatter(fmt)
+    logger.addHandler(fh)
+except Exception as e:
+    logger.warning(f"Could not open log file {LOG_PATH}: {e}")
+
+stop_flag = False
+
+def handle_signal(sig, frame):
+    global stop_flag
+    stop_flag = True
+
+signal.signal(signal.SIGINT, handle_signal)
+signal.signal(signal.SIGTERM, handle_signal)
+
+def connect_db():
+    while True:
+        try:
+            conn = pymysql.connect(**DB)
+            cur = conn.cursor()
+            logger.info("Connected to MySQL.")
+            return conn, cur
+        except Exception as e:
+            logger.error(f"MySQL connection failed: {e}. Retrying in {DB_RECONNECT_SLEEP}s...")
+            time.sleep(DB_RECONNECT_SLEEP)
+
+def parse_line(line: str):
+    parts = line.strip().split(" ", 6)
+    if len(parts) < 7:
+        return None, "bad_format"
+    ts, ip, user, method, url, status, bytes_ = parts
+    if not ts or not ip:
+        return None, "missing_ts_or_ip"
+    try:
+        bytes_i = int(bytes_)
+    except Exception:
+        return None, "bad_bytes"
+    return (ts, ip, user, method, url, status, bytes_i), None
+
+def main():
+    logger.info(f"Starting bandwidth log ingestor. Source: {SQUID_LOG}")
+    if not os.path.exists(SQUID_LOG):
+        logger.error(f"Squid log not found: {SQUID_LOG}")
+        sys.exit(1)
+
+    conn, cur = connect_db()
+    proc = subprocess.Popen(["tail", "-F", SQUID_LOG], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1)
+
+    c_total = c_insert_ok = c_update_ok = c_skip_no_user = c_skip_bad_method = c_skip_parse = c_skip_unknown_user = c_db_err = 0
+    last_stats = time.time()
+
+    while not stop_flag:
+        line = proc.stdout.readline()
+        if not line:
+            if proc.poll() is not None:
+                logger.error("tail exited. Restarting...")
+                proc = subprocess.Popen(["tail", "-F", SQUID_LOG], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1)
+            time.sleep(0.2)
+            continue
+
+        c_total += 1
+        data, err = parse_line(line.rstrip("\n"))
+        if err:
+            c_skip_parse += 1
+            continue
+
+        ts, ip, user, method, url, status, bytes_i = data
+        if user in NO_USER_VALUES:
+            c_skip_no_user += 1
+            continue
+        if method not in ALLOWED_METHODS:
+            c_skip_bad_method += 1
+            continue
+
+        try:
+            cur.execute(
+                "INSERT INTO proxy_requests (ts, client_ip, username, method, url, status, bytes) VALUES (%s,%s,%s,%s,%s,%s,%s)",
+                (ts, ip, user, method, url, status, bytes_i),
+            )
+            c_insert_ok += 1
+            cur.execute(
+                "UPDATE squid_users SET used_bytes = used_bytes + %s, last_seen_at = NOW() WHERE user = %s",
+                (bytes_i, user),
+            )
+            if cur.rowcount == 0:
+                c_skip_unknown_user += 1
+                logger.warning(f"UNKNOWN_USER: '{user}' ip={ip} bytes={bytes_i}")
+            else:
+                c_update_ok += 1
+                logger.info(f"OK: user={user} ip={ip} {method} {status} bytes={bytes_i}")
+
+        except (pymysql.err.OperationalError, pymysql.err.InterfaceError) as e:
+            c_db_err += 1
+            logger.error(f"DB_CONN_ERR: {e}. Reconnecting...")
+            try:
+                conn.close()
+            except Exception:
+                pass
+            conn, cur = connect_db()
+        except Exception as e:
+            c_db_err += 1
+            logger.exception(f"DB_ERR: {e}")
+
+        if time.time() - last_stats >= STATS_EVERY_SEC:
+            logger.info(f"STATS: total={c_total} insert_ok={c_insert_ok} update_ok={c_update_ok} unknown_user={c_skip_unknown_user} skip_no_user={c_skip_no_user} db_err={c_db_err}")
+            last_stats = time.time()
+
+    proc.terminate()
+    cur.close()
+    conn.close()
+    logger.info("Stopped.")
+
+if __name__ == "__main__":
+    main()
+```
+
+**Service file:** `/etc/systemd/system/bandwidth-ingestor.service`
+
+```ini
+[Unit]
+Description=Bandwidth Log Ingestor
+After=network.target mysql.service mariadb.service squid.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/bandwidth-log-process
+ExecStart=/root/bandwidth-log-process/venv/bin/python /root/bandwidth-log-process/ingestor.py
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/bandwidth-ingestor.log
+StandardError=append:/var/log/bandwidth-ingestor.err
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+systemctl daemon-reload
+systemctl enable bandwidth-ingestor
+systemctl start bandwidth-ingestor
+```
+
+**Verify it's running:**
+
+```bash
+systemctl status bandwidth-ingestor
+journalctl -u bandwidth-ingestor -f
+tail -f /var/log/squid/bandwidth-ingestor.log
+```
+
+**How it works:**
+
+```
+Squid → writes /var/log/squid/bandwidth.log (one line per request)
+           format: ts  client_ip  username  method  url  status  bytes
+
+bandwidth-ingestor (tail -F) reads each line in real-time
+  → INSERT into proxy_requests
+  → UPDATE squid_users SET used_bytes = used_bytes + N
+  → quota_enforcer_tshark reads used_bytes to enforce mid-download
+  → mysql_check_quota.php reads used_bytes to block new connections
+```
+
+> **Important:** If this service is stopped, `used_bytes` stops updating and quota enforcement breaks. Always ensure it's running: `systemctl is-active bandwidth-ingestor`
+
+---
+
 ### quota-enforcer.service
 
 **Path:** `/etc/systemd/system/quota-enforcer.service`
@@ -767,7 +994,8 @@ systemctl start quota-enforcer
 touch /var/log/squid/ipdbauth.log \
       /var/log/squid/basic_db_auth.log \
       /var/log/squid/quota_helper.log \
-      /var/log/squid/quota_enforcer.log
+      /var/log/squid/quota_enforcer.log \
+      /var/log/squid/bandwidth-ingestor.log
 
 chown proxy:proxy /var/log/squid/ipdbauth.log \
                   /var/log/squid/basic_db_auth.log \
@@ -806,7 +1034,8 @@ php artisan db:seed
 | Log File | Written By | Purpose |
 |----------|-----------|---------|
 | `/var/log/squid/access.log` | Squid | Full access log |
-| `/var/log/squid/bandwidth.log` | Squid | Bandwidth per request (timestamp, IP, user, method, URL, status, bytes) |
+| `/var/log/squid/bandwidth.log` | Squid | Bandwidth per request — **source for ingestor** |
+| `/var/log/squid/bandwidth-ingestor.log` | `bandwidth-ingestor.service` | Ingestor stats: inserts, updates, skips, DB errors |
 | `/var/log/squid/ipdbauth.log` | `ipdbauth.js` | IP allowlist check results |
 | `/var/log/squid/basic_db_auth.log` | `basic_db_auth` | Auth attempts (success/fail) |
 | `/var/log/squid/quota_helper.log` | `mysql_check_quota.php` | Per-request quota gate decisions |
