@@ -1,4 +1,4 @@
-# EUProxy — Production Setup Guide
+# EUProxy — Production Setup Guide(Without logs file some system service may fail so we should run step 7 first)
 
 Full setup guide for the Squid-based authenticated proxy system with bandwidth quota enforcement.
 
