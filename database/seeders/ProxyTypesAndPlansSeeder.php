@@ -48,7 +48,10 @@ class ProxyTypesAndPlansSeeder extends Seeder
         ];
 
         foreach ($proxyTypes as $typeData) {
-            $proxyType = ProxyType::create($typeData);
+            $proxyType = ProxyType::firstOrCreate(
+                ['slug' => $typeData['slug']],
+                $typeData
+            );
 
             // Create plans for each proxy type
             $this->createPlansForType($proxyType);
@@ -109,7 +112,10 @@ class ProxyTypesAndPlansSeeder extends Seeder
         ];
 
         foreach ($plans as $planData) {
-            $plan = $proxyType->plans()->create($planData);
+            $plan = $proxyType->plans()->firstOrCreate(
+                ['name' => $planData['name']],
+                $planData
+            );
 
             // Create features for each plan
             $this->createFeaturesForPlan($plan);
@@ -167,7 +173,10 @@ class ProxyTypesAndPlansSeeder extends Seeder
         ];
 
         foreach ($features as $featureData) {
-            $plan->features()->create($featureData);
+            $plan->features()->firstOrCreate(
+                ['feature_key' => $featureData['feature_key']],
+                $featureData
+            );
         }
     }
 }

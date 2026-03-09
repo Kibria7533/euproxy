@@ -875,7 +875,301 @@ mysql -u squid -p squid -e "
 
 ---
 
-## 12. Password Notes
+## 12. Debugging Guide
+
+### 12.1 Squid won't start — `FATAL: Cannot open bandwidth.log`
+
+**Symptom:**
+```
+FATAL: Cannot open '/var/log/squid/bandwidth.log' for writing.
+The parent directory must be writeable by the user 'proxy'
+```
+
+**Cause:** Log files were created/written as `root` (e.g. after running artisan or manual commands as root). Squid runs as user `proxy` and cannot write to them.
+
+**Fix:**
+```bash
+touch /var/log/squid/bandwidth.log /var/log/squid/access.log
+chown proxy:proxy /var/log/squid/bandwidth.log /var/log/squid/access.log
+chmod 664 /var/log/squid/bandwidth.log /var/log/squid/access.log
+systemctl start squid
+```
+
+**Prevention:** Always check file ownership after any manual operations in `/var/log/squid/`.
+
+---
+
+### 12.2 PHP quota helper crashing — `external_acl_type exited`
+
+**Symptom (journalctl -u squid):**
+```
+WARNING: external_acl_type #HlprXXXXX exited
+Too few external_acl_type processes are running (need 1/10)
+helperOpenServers: Starting 1/10 'php' processes
+```
+Repeating every ~60 seconds.
+
+**Cause:** The PHP helper (`mysql_check_quota.php`) crashes on startup — usually a DB connection error or permission issue on the log file.
+
+**Debug steps:**
+
+1. **Run the helper manually** to see the real error:
+```bash
+echo "testuser" | php /usr/lib/squid/external_module/mysql_check_quota.php
+```
+
+2. **Check the helper's own log:**
+```bash
+tail -f /var/log/squid/quota_helper.log
+```
+
+3. **Check DB connectivity** from PHP:
+```bash
+php -r "new PDO('mysql:host=127.0.0.1;port=3306;dbname=squid;charset=utf8mb4','squid','YOUR_PASSWORD'); echo 'OK';"
+```
+
+4. **Check PHP version compatibility:** Script was developed on PHP 8.3 — server runs PHP 8.1. Test on the server explicitly:
+```bash
+php --version   # must be 8.1+
+php /usr/lib/squid/external_module/mysql_check_quota.php <<< "alice_proxy1"
+```
+
+5. **Check quota_helper.log ownership:**
+```bash
+ls -la /var/log/squid/quota_helper.log
+# Must be writable by proxy user
+chown proxy:proxy /var/log/squid/quota_helper.log
+```
+
+---
+
+### 12.3 Laravel `/user/bandwidth-data` returns 500
+
+**Symptom:** Browser console shows:
+```
+GET https://yourdomain/user/bandwidth-data?range=7days&usernames[]=xxx 500 (Internal Server Error)
+```
+
+**Cause:** `laravel.log` is owned by `root` (created when running `php artisan` as root). The `www-data` user (php-fpm) cannot write to it. The `\Log::info()` call inside the controller throws an exception that escapes the try-catch.
+
+**Debug steps:**
+
+1. **Enable debug mode temporarily:**
+```bash
+# In .env
+APP_DEBUG=true
+php artisan config:clear
+```
+Then hit the endpoint — the JSON response will show the real error message.
+Disable after diagnosis: `APP_DEBUG=false && php artisan config:clear`
+
+2. **Check log file ownership:**
+```bash
+ls -la /var/www/euproxy/storage/logs/laravel.log
+```
+
+3. **Fix ownership:**
+```bash
+chown www-data:www-data /var/www/euproxy/storage/logs/laravel.log
+chmod 664 /var/www/euproxy/storage/logs/laravel.log
+```
+
+4. **Fix all storage permissions at once:**
+```bash
+chown -R www-data:www-data /var/www/euproxy/storage
+chmod -R 775 /var/www/euproxy/storage
+```
+
+**Prevention:** Always run artisan commands as `www-data`, not root:
+```bash
+sudo -u www-data php artisan migrate:fresh --seed
+sudo -u www-data php artisan cache:clear
+```
+
+---
+
+### 12.4 Seeder fails with duplicate entry error
+
+**Symptom:**
+```
+SQLSTATE[23000]: Integrity constraint violation: 1062
+Duplicate entry 'rotating-residential' for key 'proxy_types.proxy_types_slug_unique'
+```
+
+**Cause:** `ProxyTypesAndPlansSeeder` uses `create()` instead of `firstOrCreate()` — not idempotent.
+
+**Fix:** Use `firstOrCreate()` keyed on `slug` for proxy types, `name` for plans, and `feature_key` for features (already applied in the codebase).
+
+**Fresh migrate (correct way):**
+```bash
+sudo -u www-data php artisan migrate:fresh --seed
+```
+
+---
+
+### 12.5 General permission fix after running commands as root
+
+Any time you run `php artisan`, `composer`, or write files as `root`, fix permissions:
+
+```bash
+chown -R www-data:www-data /var/www/euproxy/storage /var/www/euproxy/bootstrap/cache
+chown proxy:proxy /var/log/squid/bandwidth.log /var/log/squid/access.log
+```
+
+---
+
+### 12.6 No proxy logs written (access.log / bandwidth.log empty)
+
+**Check squid is running:**
+```bash
+systemctl status squid
+```
+
+**If stopped/failed — check why:**
+```bash
+journalctl -u squid --since "1 hour ago" --no-pager | grep -E "FATAL|ERROR|exited|WARNING"
+```
+
+**Common causes:**
+- Log file owned by root → fix with `chown proxy:proxy` (see 12.1)
+- PHP quota helper crashing → fix (see 12.2)
+- Node.js ipdbauth helper crashing → check `/var/log/squid/ipdbauth.log`
+
+**Tail all squid logs at once:**
+```bash
+tail -f /var/log/squid/access.log \
+         /var/log/squid/bandwidth.log \
+         /var/log/squid/quota_helper.log \
+         /var/log/squid/ipdbauth.log \
+         /var/log/squid/basic_db_auth.log
+```
+
+---
+
+### 12.7 Node.js ipdbauth helper crashes — `SyntaxError: Unexpected token '?'`
+
+**Symptom (journalctl -u squid):**
+```
+WARNING: external_acl_type #Hlpr2 exited
+Too few external_acl_type processes are running (need 1/10)
+FATAL: The external_acl_type helpers are crashing too rapidly, need help!
+```
+
+**Debug — test the node helper manually:**
+```bash
+echo "1 127.0.0.1" | timeout 3 /usr/bin/node /opt/squid-helpers/ipdbauth/ipdbauth.js
+```
+
+**Error output:**
+```
+/opt/squid-helpers/ipdbauth/ipdbauth.js:63
+    log(`PARSED channel=${channel ?? '-'} ip=${ip}`);
+                                   ^
+SyntaxError: Unexpected token '?'
+```
+
+**Cause:** `ipdbauth.js` uses the nullish coalescing operator (`??`) which requires **Node.js v14+**. The server was running Node.js **v12**.
+
+**Check Node version:**
+```bash
+node --version   # v12.x = too old, need v14+
+```
+
+**Fix — upgrade Node.js to 18:**
+```bash
+curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+apt install -y nodejs
+node --version   # should show v18.x
+systemctl restart squid
+systemctl status squid
+```
+
+**Key rule:** `ipdbauth.js` requires **Node.js 14+** due to use of:
+- `??` nullish coalescing operator (v14+)
+- Template literals with expressions
+
+Always verify Node version matches development environment before deploying.
+
+---
+
+### 12.8 Identifying which helper is crashing
+
+Squid numbers helpers sequentially across all `external_acl_type` entries. With the current config:
+- `ipdbauth` (node) → `#Hlpr1`, `#Hlpr2`
+- `quota_check` (php) → `#Hlpr3`, `#Hlpr4`
+
+**Test each helper manually to isolate the crash:**
+
+```bash
+# Test Node.js ipdbauth helper
+echo "1 127.0.0.1" | timeout 3 /usr/bin/node /opt/squid-helpers/ipdbauth/ipdbauth.js
+
+# Test PHP quota helper
+echo "alice_proxy1" | timeout 3 /usr/bin/php /usr/lib/squid/external_module/mysql_check_quota.php
+
+# Test Perl basic_db_auth helper
+echo "alice_proxy1 password123" | timeout 3 /usr/lib/squid/basic_db_auth \
+  --dsn "DBI:mysql:host=127.0.0.1;port=3306;database=squid;" \
+  --user squid --password YOUR_DB_PASSWORD --table squid_users --md5 --persist
+```
+
+Expected output for each: `OK` (or `ERR` for bad credentials — but no crash/exception).
+
+---
+
+### 12.9 Log file empty — process writing to deleted inode
+
+**Symptom:** Service is running and healthy in `journalctl`, but the log file on disk is 0 bytes.
+
+**Diagnosis:**
+```bash
+# Find the PID
+systemctl status quota-enforcer | grep "Main PID"
+
+# Check open file descriptors for that PID
+ls -la /proc/<PID>/fd/ | grep log
+```
+
+If you see `(deleted)` next to the log path:
+```
+l-wx------ 1 root root 64 ... 3 -> /var/log/squid/quota_enforcer.log (deleted)
+```
+
+The process opened the file at startup, then the file was deleted and recreated on disk (e.g. via `touch`, `rm`, or logrotate without `copytruncate`). The process keeps writing to the old inode — the new empty file on disk gets nothing.
+
+**Quick fix:** Restart the service to reopen the new file:
+```bash
+systemctl restart quota-enforcer
+```
+
+**Permanent fix — logrotate with `copytruncate`:**
+
+Instead of rotating by renaming (which changes the inode), `copytruncate` copies the file then truncates the original in-place. The process never loses its file handle.
+
+Config at `/etc/logrotate.d/quota-enforcer`:
+```
+/var/log/squid/quota_enforcer.log
+/var/log/squid/quota_helper.log
+/var/log/squid/ipdbauth.log
+/var/log/squid/basic_db_auth.log
+/var/log/squid/bandwidth-ingestor.log {
+    daily
+    compress
+    delaycompress
+    rotate 7
+    missingok
+    copytruncate
+    sharedscripts
+}
+```
+
+> **Why `copytruncate` for these files?** Python (`quota_enforcer`), PHP (`quota_helper`), Node.js (`ipdbauth`), and Perl (`basic_db_auth`) processes do not support signal-based log reopening. Squid's own `access.log`/`bandwidth.log` are handled by the existing `/etc/logrotate.d/squid` config which uses `squid -k rotate` instead.
+
+**Rule:** Never use `touch`, `rm`, or `> file` on a log file while the writing process is running. Always use `copytruncate` in logrotate, or restart the service after recreating a log file.
+
+---
+
+## 13. Password Notes
 
 Passwords are stored as **MD5 hashes** in `squid_users.password`. The Laravel app hashes automatically via the model mutator. Squid's `basic_db_auth` is configured with `--md5` to match.
 
