@@ -81,7 +81,7 @@ apt install -y nodejs
 # Python 3 + pip
 apt install -y python3 python3-pip
 
-# Python packages
+# Python packages (system-wide, used by bandwidth-ingestor)
 pip3 install pymysql
 
 # tshark (packet capture for quota enforcer)
@@ -748,9 +748,6 @@ This is the **critical link** between Squid and the database. It tails `/var/log
 
 ```bash
 mkdir -p /root/bandwidth-log-process
-cd /root/bandwidth-log-process
-python3 -m venv venv
-venv/bin/pip install pymysql
 ```
 
 **File:** `/root/bandwidth-log-process/ingestor.py`
@@ -919,7 +916,7 @@ After=network.target mysql.service mariadb.service squid.service
 Type=simple
 User=root
 WorkingDirectory=/root/bandwidth-log-process
-ExecStart=/root/bandwidth-log-process/venv/bin/python /root/bandwidth-log-process/ingestor.py
+ExecStart=/usr/bin/python3 /root/bandwidth-log-process/ingestor.py
 Restart=always
 RestartSec=5
 StandardOutput=append:/var/log/bandwidth-ingestor.log
@@ -995,7 +992,8 @@ touch /var/log/squid/ipdbauth.log \
       /var/log/squid/basic_db_auth.log \
       /var/log/squid/quota_helper.log \
       /var/log/squid/quota_enforcer.log \
-      /var/log/squid/bandwidth-ingestor.log
+      /var/log/squid/bandwidth-ingestor.log \
+      /var/log/squid/bandwidth.log
 
 chown proxy:proxy /var/log/squid/ipdbauth.log \
                   /var/log/squid/basic_db_auth.log \
