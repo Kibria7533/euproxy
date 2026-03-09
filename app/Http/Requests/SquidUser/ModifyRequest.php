@@ -49,21 +49,24 @@ class ModifyRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            $newLimit = (float) ($this->bandwidth_limit_gb ?? 0);
-            if ($newLimit <= 0) return;
-
+            $newLimit    = (float) ($this->bandwidth_limit_gb ?? 0);
             $squidUserId = $this->route()->parameter('id');
             $squidUser   = SquidUser::find($squidUserId);
-            if (!$squidUser) return;
 
-            $userId = $squidUser->user_id;
+            if ($newLimit <= 0 || !$squidUser) return;
 
+            $userId      = $squidUser->user_id;
+            $proxyTypeId = $squidUser->proxy_type_id;
+
+            // Purchased GB for this proxy type only
             $totalPurchased = ProxySubscription::where('user_id', $userId)
+                ->where('proxy_type_id', $proxyTypeId)
                 ->where('status', 'active')
                 ->sum('bandwidth_total_gb');
 
-            // Exclude current user's existing limit from the assigned total
+            // Already assigned to other users of this proxy type (excluding this user)
             $totalAssigned = SquidUser::where('user_id', $userId)
+                ->where('proxy_type_id', $proxyTypeId)
                 ->where('enabled', 1)
                 ->where('id', '!=', $squidUserId)
                 ->sum('bandwidth_limit_gb');
@@ -72,7 +75,7 @@ class ModifyRequest extends FormRequest
                 $available = max(0, $totalPurchased - $totalAssigned);
                 $validator->errors()->add(
                     'bandwidth_limit_gb',
-                    "Bandwidth limit exceeds your available quota. You have " . number_format($available, 3) . " GB remaining to assign."
+                    "Exceeds available bandwidth for this proxy type. You have " . number_format($available, 3) . " GB remaining."
                 );
             }
         });

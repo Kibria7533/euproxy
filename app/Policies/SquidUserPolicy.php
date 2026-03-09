@@ -35,7 +35,7 @@ class SquidUserPolicy
         return false;
     }
 
-    public function create(User $user, string $toSpecifiedUserId): Response|bool
+    public function create(User $user, string $toSpecifiedUserId, ?int $proxyTypeId = null): Response|bool
     {
         if ((bool) $user->is_administrator) {
             return true;
@@ -45,8 +45,14 @@ class SquidUserPolicy
             return false;
         }
 
-        // Sum max_sub_accounts across all active subscriptions
+        // Must select a proxy type
+        if (!$proxyTypeId) {
+            return Response::deny('Please select a proxy type.');
+        }
+
+        // Check user has an active subscription for this specific proxy type
         $maxAllowed = ProxySubscription::where('user_id', $user->id)
+            ->where('proxy_type_id', $proxyTypeId)
             ->where('status', 'active')
             ->with(['order.proxyPlan.features'])
             ->get()
@@ -57,15 +63,16 @@ class SquidUserPolicy
             });
 
         if ($maxAllowed === 0) {
-            return Response::deny('You need an active subscription to create proxy users.');
+            return Response::deny('You do not have an active subscription for this proxy type.');
         }
 
         $activeCount = SquidUser::where('user_id', $user->id)
+            ->where('proxy_type_id', $proxyTypeId)
             ->where('enabled', 1)
             ->count();
 
         if ($activeCount >= $maxAllowed) {
-            return Response::deny("You have reached your limit of {$maxAllowed} active proxy user(s). Upgrade your plan to add more.");
+            return Response::deny("You have reached your limit of {$maxAllowed} proxy user(s) for this proxy type. Upgrade your plan to add more.");
         }
 
         return true;

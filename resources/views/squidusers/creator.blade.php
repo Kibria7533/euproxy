@@ -11,12 +11,12 @@
 
                         @if(Auth::user()->is_administrator)
                             <form method="post" action="{{ route('squiduser.create',request()->user()->id) }}">
-                                @include('squidusers.commons.form',['submit'=>'Create'])
+                                @include('squidusers.commons.form', ['submit' => 'Create', 'availableTypes' => $availableTypes])
                                 @csrf
                             </form>
                         @else
                             <form method="post" action="{{ route('user.squiduser.create') }}">
-                                @include('squidusers.commons.form',['submit'=>'Create'])
+                                @include('squidusers.commons.form', ['submit' => 'Create', 'availableTypes' => $availableTypes])
                                 @csrf
                             </form>
                         @endif

@@ -12,6 +12,7 @@ class SquidUser extends Model
     use HasFactory;
 
     protected $fillable = [
+        'proxy_type_id',
         'user',
         'password',
         'encrypted_password',
@@ -38,6 +39,11 @@ class SquidUser extends Model
     public function laravel_user()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function proxyType()
+    {
+        return $this->belongsTo(ProxyType::class);
     }
 
     public function proxyRequests()

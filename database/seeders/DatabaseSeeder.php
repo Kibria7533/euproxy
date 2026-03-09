@@ -2,41 +2,19 @@
 
 namespace Database\Seeders;
 
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // Create superadmin user
-        $this->call([
-            CreateAdministratorSeeder::class,
-        ]);
+        // 1. Admin user
+        $this->call(CreateAdministratorSeeder::class);
 
-        // Create proxy types and plans
-        $this->call([
-            ProxyTypesAndPlansSeeder::class,
-        ]);
+        // 2. Proxy types, plans and their features
+        $this->call(ProxyTypesAndPlansSeeder::class);
 
-        // Create squid proxy users with realistic data
-        $this->call([
-            SquidUserSeeder::class,
-        ]);
-
-        // Generate 6 months of proxy request logs
-        $this->call([
-            ProxyRequestSeeder::class,
-        ]);
-
-        // \App\Models\User::factory(10)->create();
-
-        // \App\Models\User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
+        // 3. Proxy owners with subscriptions, proxy servers and squid users
+        $this->call(ProxyOwnerSeeder::class);
     }
 }
