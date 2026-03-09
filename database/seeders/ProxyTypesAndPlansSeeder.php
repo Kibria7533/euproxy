@@ -48,10 +48,15 @@ class ProxyTypesAndPlansSeeder extends Seeder
         ];
 
         foreach ($proxyTypes as $typeData) {
-            $proxyType = ProxyType::create($typeData);
+            $proxyType = ProxyType::firstOrCreate(
+                ['slug' => $typeData['slug']],
+                $typeData
+            );
 
-            // Create plans for each proxy type
-            $this->createPlansForType($proxyType);
+            // Only create plans if this is a newly created type
+            if ($proxyType->wasRecentlyCreated) {
+                $this->createPlansForType($proxyType);
+            }
         }
     }
 
