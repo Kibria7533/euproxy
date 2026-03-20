@@ -106,6 +106,8 @@ Route::prefix('user')->group(function () {
     Route::middleware(['auth:web', 'user'])->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\User\UserDashboardController::class, 'index'])->name('user.dashboard');
         Route::get('/bandwidth-data', [\App\Http\Controllers\User\UserDashboardController::class, 'getBandwidthData'])->name('user.bandwidth.data');
+        Route::post('/blocked-users/{id}/unblock', [\App\Http\Controllers\User\UserDashboardController::class, 'unblockUser'])->name('user.blocked.unblock');
+        Route::get('/blocked-users/{id}/status', [\App\Http\Controllers\User\UserDashboardController::class, 'blockedUserStatus'])->name('user.blocked.status');
 
         // User's proxy management routes (uses same controllers as admin, but authorization via policies)
         Route::prefix('squiduser')->group(function () {

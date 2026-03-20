@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SquidUser;
 use App\Models\SquidAllowedIp;
 use App\Services\BandwidthService;
+use App\UseCases\SquidUser\ModifyAction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -65,6 +66,25 @@ class UserDashboardController extends Controller
 
         $stats['bandwidth_data'] = $squidUsersWithBandwidth;
         $stats['last_7_days_bandwidth'] = $last7DaysData;
+
+        // Blocked users list
+        $stats['blocked_users'] = $userSquidUsers
+            ->where('is_blocked', 1)
+            ->map(function ($squidUser) {
+                $usedBytes  = (int) $squidUser->used_bytes;
+                $quotaBytes = (int) $squidUser->quota_bytes;
+                return [
+                    'id'                 => $squidUser->id,
+                    'username'           => $squidUser->user,
+                    'used_gb'            => round($usedBytes  / 1073741824, 3),
+                    'quota_gb'           => round($quotaBytes / 1073741824, 3),
+                    'bandwidth_limit_gb' => (float) $squidUser->bandwidth_limit_gb,
+                    'reason'             => ($quotaBytes > 0 && $usedBytes >= $quotaBytes)
+                                            ? 'quota_exceeded'
+                                            : 'manual',
+                ];
+            })
+            ->values();
 
         return view('user.dashboard', compact('user', 'stats'));
     }
@@ -138,6 +158,73 @@ class UserDashboardController extends Controller
                 'error' => 'Failed to fetch bandwidth data',
                 'message' => config('app.debug') ? $e->getMessage() : 'An error occurred'
             ], 500);
+        }
+    }
+
+    /**
+     * Return fresh usage stats for a blocked proxy user (for the unblock modal).
+     */
+    public function blockedUserStatus(Request $request, $id)
+    {
+        $user = Auth::user();
+        $squidUser = SquidUser::where('id', $id)->where('user_id', $user->id)->first();
+        if (!$squidUser) {
+            return response()->json(['success' => false, 'error' => 'Not found.'], 404);
+        }
+        $usedBytes  = (int) $squidUser->used_bytes;
+        $quotaBytes = (int) $squidUser->quota_bytes;
+        return response()->json([
+            'success'            => true,
+            'used_gb'            => round($usedBytes  / 1073741824, 3),
+            'quota_gb'           => round($quotaBytes / 1073741824, 3),
+            'bandwidth_limit_gb' => (float) $squidUser->bandwidth_limit_gb,
+            'is_blocked'         => (bool) $squidUser->is_blocked,
+        ]);
+    }
+
+    /**
+     * Unblock a proxy user by increasing their bandwidth limit.
+     */
+    public function unblockUser(Request $request, $id, ModifyAction $action)
+    {
+        $user = Auth::user();
+
+        // Verify the squid user belongs to this account
+        $squidUser = SquidUser::where('id', $id)->where('user_id', $user->id)->first();
+        if (!$squidUser) {
+            return response()->json(['success' => false, 'error' => 'Proxy user not found.'], 404);
+        }
+
+        if (!(int) $squidUser->is_blocked) {
+            return response()->json(['success' => false, 'error' => 'User is not blocked.'], 422);
+        }
+
+        $newLimitGb = (float) $request->input('bandwidth_limit_gb');
+        if ($newLimitGb <= 0) {
+            return response()->json(['success' => false, 'error' => 'Bandwidth limit must be greater than 0.'], 422);
+        }
+
+        $newLimitBytes = (int) ($newLimitGb * 1073741824);
+        if ($newLimitBytes <= (int) $squidUser->used_bytes) {
+            $usedGb = round($squidUser->used_bytes / 1073741824, 3);
+            return response()->json([
+                'success' => false,
+                'error'   => "New limit must exceed current usage ({$usedGb} GB).",
+            ], 422);
+        }
+
+        try {
+            // Pass a partial SquidUser — ModifyAction merges it over the existing record
+            $update = new SquidUser();
+            $update->id = (int) $id;
+            $update->bandwidth_limit_gb = $newLimitGb;   // mutator also sets quota_bytes
+
+            $action($update);
+
+            return response()->json(['success' => true, 'message' => "User '{$squidUser->user}' unblocked successfully."]);
+        } catch (\Exception $e) {
+            \Log::error('Unblock user error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'error' => 'Failed to unblock user.'], 500);
         }
     }
 }

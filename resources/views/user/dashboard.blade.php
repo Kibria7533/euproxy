@@ -218,6 +218,92 @@
                             </div>
                         </div>
 
+                        <!-- Blocked Users -->
+                        @if($stats['blocked_users']->isNotEmpty())
+                        <div class="row g-4 mb-4">
+                            <div class="col-12">
+                                <div class="card stat-card border-danger" style="border-width: 1px !important;">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h5 class="fw-bold mb-0 text-danger">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                                                Blocked Proxy Users
+                                                <span class="badge bg-danger ms-1">{{ $stats['blocked_users']->count() }}</span>
+                                            </h5>
+                                        </div>
+                                        <div class="table-responsive">
+                                            <table class="table table-hover align-middle mb-0">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>Username</th>
+                                                        <th>Reason</th>
+                                                        <th>Used</th>
+                                                        <th>Current Limit</th>
+                                                        <th>Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach($stats['blocked_users'] as $bu)
+                                                    <tr id="blocked-row-{{ $bu['id'] }}">
+                                                        <td><strong>{{ $bu['username'] }}</strong></td>
+                                                        <td>
+                                                            @if($bu['reason'] === 'quota_exceeded')
+                                                                <span class="badge bg-danger">Quota Exceeded</span>
+                                                            @else
+                                                                <span class="badge bg-secondary">Manually Blocked</span>
+                                                            @endif
+                                                        </td>
+                                                        <td>{{ $bu['used_gb'] }} GB</td>
+                                                        <td>{{ $bu['bandwidth_limit_gb'] > 0 ? $bu['bandwidth_limit_gb'] . ' GB' : '—' }}</td>
+                                                        <td>
+                                                            <button class="btn btn-sm btn-success"
+                                                                onclick="openUnblockModal({{ $bu['id'] }}, '{{ $bu['username'] }}')">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><rect x="8" y="11" width="13" height="13" rx="2" ry="2"></rect><path d="M5 11V7a7 7 0 0 1 9.9-6.4"></path></svg>
+                                                                Unblock
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Unblock Modal -->
+                        <div class="modal fade" id="unblockModal" tabindex="-1" aria-labelledby="unblockModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title fw-bold" id="unblockModalLabel">Unblock Proxy User</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p class="mb-3">
+                                            Unblocking <strong id="unblockUsername"></strong>.<br>
+                                            <span class="text-muted small">Current usage: <strong id="unblockUsedGb"></strong> GB. New limit must exceed this.</span>
+                                        </p>
+                                        <div id="unblockError" class="alert alert-danger d-none"></div>
+                                        <div class="mb-3">
+                                            <label for="unblockLimitInput" class="form-label fw-semibold">New Bandwidth Limit (GB)</label>
+                                            <input type="number" id="unblockLimitInput" class="form-control" step="0.001" min="0.001" placeholder="e.g. 5.000">
+                                            <div class="form-text">Must be greater than current usage.</div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        <button type="button" class="btn btn-success" id="unblockSubmitBtn" onclick="submitUnblock()">
+                                            <span id="unblockSpinner" class="spinner-border spinner-border-sm me-1 d-none" role="status"></span>
+                                            Unblock &amp; Save
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
                         <!-- Charts Section -->
                         <div class="row g-4 mb-4">
                             <div class="col-md-6">
@@ -683,5 +769,83 @@
             loadBandwidthData();
         }
     </script>
+</script>
+
+<script>
+    // Unblock Modal
+    let unblockTargetId = null;
+
+    function openUnblockModal(id, username) {
+        unblockTargetId = id;
+        document.getElementById('unblockUsername').textContent = username;
+        document.getElementById('unblockUsedGb').textContent = '…';
+        document.getElementById('unblockLimitInput').value = '';
+        document.getElementById('unblockError').classList.add('d-none');
+
+        const modal = new bootstrap.Modal(document.getElementById('unblockModal'));
+        modal.show();
+
+        // Fetch fresh usage stats so the user sees the real current value
+        const statusUrl = '{{ route("user.blocked.status", ["id" => "__ID__"]) }}'.replace('__ID__', id);
+        fetch(statusUrl, { headers: { 'Accept': 'application/json' } })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('unblockUsedGb').textContent = data.used_gb;
+                    const limitInput = document.getElementById('unblockLimitInput');
+                    limitInput.min = data.used_gb;
+                    limitInput.value = Math.ceil(data.used_gb + 1);
+                }
+            });
+    }
+
+    function submitUnblock() {
+        if (!unblockTargetId) return;
+
+        const limitInput = document.getElementById('unblockLimitInput');
+        const newLimit = parseFloat(limitInput.value);
+        const errorDiv = document.getElementById('unblockError');
+        const submitBtn = document.getElementById('unblockSubmitBtn');
+
+        errorDiv.classList.add('d-none');
+
+        if (!newLimit || newLimit <= 0) {
+            errorDiv.textContent = 'Please enter a valid bandwidth limit greater than 0.';
+            errorDiv.classList.remove('d-none');
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Unblocking...';
+
+        const url = '{{ route("user.blocked.unblock", ["id" => "__ID__"]) }}'.replace('__ID__', unblockTargetId);
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({ bandwidth_limit_gb: newLimit }),
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                errorDiv.textContent = data.error || 'Failed to unblock user.';
+                errorDiv.classList.remove('d-none');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Unblock User';
+            }
+        })
+        .catch(() => {
+            errorDiv.textContent = 'Network error. Please try again.';
+            errorDiv.classList.remove('d-none');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Unblock User';
+        });
+    }
 </script>
 @endpush

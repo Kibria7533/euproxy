@@ -28,10 +28,15 @@ class ModifyAction
         if ($oldIsBlocked && $newQuotaBytes > $oldUsedBytes) {
             DB::table('squid_users')->where('id', $modifyUser->id)->update(['is_blocked' => 0]);
 
-            // Remove iptables block rules for all IPs belonging to this user
+            // Remove ALL stacked iptables block rules for all IPs belonging to this user
+            // The quota enforcer may have added multiple rules, so loop until none remain
             $ips = SquidAllowedIp::withoutGlobalScopes()->where('user_id', $userId)->pluck('ip');
             foreach ($ips as $ip) {
-                exec('iptables -D INPUT -s ' . escapeshellarg($ip) . ' -p tcp --dport 3128 -j REJECT --reject-with tcp-reset 2>/dev/null');
+                $escaped = escapeshellarg($ip);
+                while (true) {
+                    exec('sudo iptables -D INPUT -s ' . $escaped . ' -p tcp --dport 3128 -j REJECT --reject-with tcp-reset 2>/dev/null', $out, $ret);
+                    if ($ret !== 0) break;
+                }
             }
         }
 

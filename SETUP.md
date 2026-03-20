@@ -41,8 +41,9 @@ Client (192.168.88.x)
 ┌──────────────────────────────┐
 │  EUProxy Laravel App         │
 │  - Manage users / IPs        │
-│  - Update bandwidth limits   │──► auto-unblock + clean iptables
-│  - View subscriptions        │
+│  - Update bandwidth limits   │──► ModifyAction: is_blocked=0
+│  - View blocked proxy users  │    + loops iptables -D until clear
+│  - Unblock via dashboard     │    + requires: sudoers www-data-iptables
 └──────────────────────────────┘
 ```
 
@@ -614,7 +615,7 @@ def resolve_user_from_ip(cur, ip):
 
 def get_user_quota(cur, user):
     cur.execute("""
-        SELECT quota_bytes, used_bytes, last_seen_at
+        SELECT quota_bytes, used_bytes, last_seen_at, is_blocked
         FROM squid_users
         WHERE user = %s
         LIMIT 1
@@ -695,13 +696,18 @@ def main():
                     log.warning(f"SKIP user={user} ip={ip} reason=no_row_in_squid_users")
                     continue
 
-                quota, used, last_seen_at = q
+                quota, used, last_seen_at, is_blocked = q
                 remaining = int(quota) - int(used)
 
                 log.info(
                     f"CHECK ip={ip} user={user} rolling={human(rolling_bytes)} remaining={human(remaining)} "
                     f"(quota={human(quota)} used={human(used)} last_seen={last_seen_at})"
                 )
+
+                # Already blocked in DB — skip kill_ip to prevent stacking iptables rules
+                if is_blocked:
+                    log.info(f"SKIP ip={ip} user={user} reason=already_blocked")
+                    continue
 
                 if remaining <= 0:
                     kill_ip(ip, "already_exceeded")
@@ -1025,6 +1031,27 @@ php artisan migrate
 php artisan db:seed
 ```
 
+### sudo permission for iptables (required for unblock feature)
+
+The Laravel app runs as `www-data` (php-fpm). The unblock feature needs to clear iptables REJECT rules that the quota enforcer added as `root`. Without this, `ModifyAction` silently fails to remove the rules.
+
+```bash
+# Create sudoers rule — allows www-data to run iptables only
+cat > /etc/sudoers.d/www-data-iptables << 'EOF'
+www-data ALL=(root) NOPASSWD: /sbin/iptables
+EOF
+
+chmod 440 /etc/sudoers.d/www-data-iptables
+
+# Validate syntax
+visudo -c
+```
+
+**Test it works:**
+```bash
+sudo -u www-data sudo iptables -L INPUT -n | head -3
+```
+
 ---
 
 ## 9. Log File Reference
@@ -1064,11 +1091,18 @@ Two layers enforce quotas:
 ### Manually unblock a user
 
 ```bash
-mysql -u squid -p squid -e "UPDATE squid_users SET is_blocked=0, used_bytes=0 WHERE user='username';"
+# 1. Clear the DB block flag (optionally reset usage too)
+mysql -u squid -p squid -e "UPDATE squid_users SET is_blocked=0 WHERE user='username';"
 
-# Also remove iptables rule if enforcer blocked them
-iptables -D INPUT -s CLIENT_IP -p tcp --dport 3128 -j REJECT --reject-with tcp-reset
+# 2. Remove ALL stacked iptables rules for that IP
+#    The enforcer may have added multiple rules — loop until all are gone
+while iptables -D INPUT -s CLIENT_IP -p tcp --dport 3128 -j REJECT --reject-with tcp-reset 2>/dev/null; do :; done
+
+# 3. Verify no rules remain
+iptables -L INPUT -n | grep CLIENT_IP
 ```
+
+> **Note:** The preferred method is to use the **Blocked Users** panel in the user dashboard — it handles all of the above automatically including clearing all stacked rules.
 
 ### Check current iptables blocks
 
@@ -1393,6 +1427,68 @@ Config at `/etc/logrotate.d/quota-enforcer`:
 > **Why `copytruncate` for these files?** Python (`quota_enforcer`), PHP (`quota_helper`), Node.js (`ipdbauth`), and Perl (`basic_db_auth`) processes do not support signal-based log reopening. Squid's own `access.log`/`bandwidth.log` are handled by the existing `/etc/logrotate.d/squid` config which uses `squid -k rotate` instead.
 
 **Rule:** Never use `touch`, `rm`, or `> file` on a log file while the writing process is running. Always use `copytruncate` in logrotate, or restart the service after recreating a log file.
+
+---
+
+### 12.10 Unblock via dashboard doesn't work — user still can't connect
+
+**Symptom:** User is shown as unblocked in the dashboard but `curl` still gets "Failed to connect to server" or TCP RST.
+
+**Root cause A — Stacked iptables rules:**
+
+The quota enforcer fires `iptables -I` every loop iteration (~1 second) while `remaining <= 0`. If the enforcer ran for 30 seconds before being blocked in DB, there are 30 stacked REJECT rules. The old `ModifyAction` only ran `iptables -D` once, leaving 29 rules.
+
+**Diagnosis:**
+```bash
+iptables -L INPUT -n --line-numbers | grep 3128
+# If you see multiple lines for the same IP, rules are stacked
+```
+
+**Fix — clear all rules manually:**
+```bash
+while iptables -D INPUT -s CLIENT_IP -p tcp --dport 3128 -j REJECT --reject-with tcp-reset 2>/dev/null; do :; done
+```
+
+**Permanent fix:** `ModifyAction` now loops `iptables -D` until exit code is non-zero. The quota enforcer now checks `is_blocked=1` in DB and skips `kill_ip` entirely — preventing new rules from being added after a block. Both fixes are already applied.
+
+---
+
+**Root cause B — `www-data` cannot run iptables:**
+
+PHP-FPM runs as `www-data`. Without a sudoers rule, `exec('sudo iptables -D ...')` silently fails (stderr is redirected to `/dev/null`). The DB gets updated correctly but iptables rules are never removed.
+
+**Diagnosis:**
+```bash
+sudo -u www-data sudo iptables -L INPUT -n 2>&1
+# If you see "sudo: iptables: command not found" or permission denied → sudoers not set up
+```
+
+**Fix:**
+```bash
+echo "www-data ALL=(root) NOPASSWD: /sbin/iptables" > /etc/sudoers.d/www-data-iptables
+chmod 440 /etc/sudoers.d/www-data-iptables
+visudo -c
+```
+
+---
+
+**Root cause C — Stale `used_bytes` in unblock modal:**
+
+The dashboard page is loaded, showing e.g. `used_gb = 0.020`. The user then downloads a large file, quota is exceeded (now `used_bytes = 110 MB`). The user opens the unblock modal — it still shows the old `0.020 GB` from page load. The user enters a new limit of `0.050 GB` (above old value). PHP validation: `50 MB < 110 MB used` → returns 422 error → quota never updated → user remains blocked.
+
+**Fix:** The unblock modal now fetches fresh `used_bytes` via AJAX when opened (`GET /user/blocked-users/{id}/status`). The default input value is set to `ceil(current_used_gb + 1)`. This fix is already applied.
+
+---
+
+**Root cause D — Quota enforcer immediately re-blocks after unblock:**
+
+Even after a successful unblock (DB updated, iptables cleared), the quota enforcer sees `remaining <= 0` on the next loop and re-adds an iptables rule within 1 second.
+
+This happens when the new limit set during unblock is still below or barely above `used_bytes`.
+
+**Fix:** Set a new limit significantly above current usage (e.g., if used = 110 MB, set new limit to 200 MB minimum). The enforcer will then see `remaining = +90 MB` and report `OK`.
+
+Also, with the `is_blocked` check now in place, the enforcer skips `kill_ip` while `is_blocked=1`. When `ModifyAction` sets `is_blocked=0`, the enforcer resumes checking but won't re-block as long as `remaining > 0`.
 
 ---
 
